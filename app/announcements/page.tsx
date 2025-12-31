@@ -79,11 +79,12 @@ export default async function AnnouncementsPage() {
                 </span>
               </div>
 
-              {a.events?.title && (
-                <p className="text-sm text-gray-500 mb-2">
-                  {a.events.title}
-                </p>
-              )}
+             {a.events && a.events.length > 0 && (
+  <p className="text-sm text-gray-500 mb-2">
+    {a.events[0].title}
+  </p>
+)}
+
 
               <p className="text-gray-700">
                 {a.body}
