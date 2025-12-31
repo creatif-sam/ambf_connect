@@ -29,3 +29,105 @@ body {
 @tailwind components;
 @tailwind utilities;
 
+@keyframes lockReveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.6) rotate(-10deg);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.05) rotate(3deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+  }
+}
+
+@keyframes goldPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 rgba(234,179,8,0.0);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(234,179,8,0.6);
+  }
+}
+
+.animate-lock-reveal {
+  animation: lockReveal 0.9s ease-out forwards;
+}
+
+.animate-gold-pulse {
+  animation: goldPulse 2.5s ease-in-out infinite;
+}
+
+
+
+{/*Animated background for networking section */}
+
+@keyframes floatNode {
+  0% {
+    transform: translateY(0) translateX(0);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translateY(-40px) translateX(20px);
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(0) translateX(0);
+    opacity: 0.3;
+  }
+}
+
+@keyframes pulseLine {
+  0% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.35;
+  }
+  100% {
+    opacity: 0.15;
+  }
+}
+
+.network-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.network-node {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #facc15, #f59e0b);
+  animation: floatNode 6s ease-in-out infinite;
+}
+
+.network-node:nth-child(odd) {
+  animation-duration: 8s;
+}
+
+.network-node:nth-child(3n) {
+  animation-duration: 10s;
+}
+
+.network-node:nth-child(1) { top: 20%; left: 15%; }
+.network-node:nth-child(2) { top: 40%; left: 25%; }
+.network-node:nth-child(3) { top: 65%; left: 18%; }
+.network-node:nth-child(4) { top: 30%; left: 45%; }
+.network-node:nth-child(5) { top: 55%; left: 40%; }
+.network-node:nth-child(6) { top: 75%; left: 35%; }
+.network-node:nth-child(7) { top: 20%; left: 65%; }
+.network-node:nth-child(8) { top: 45%; left: 60%; }
+.network-node:nth-child(9) { top: 70%; left: 55%; }
+.network-node:nth-child(10) { top: 30%; left: 80%; }
+.network-node:nth-child(11) { top: 55%; left: 75%; }
+.network-node:nth-child(12) { top: 75%; left: 85%; }
+.network-node:nth-child(13) { top: 10%; left: 50%; }
+.network-node:nth-child(14) { top: 85%; left: 50%; }
+.network-node:nth-child(15) { top: 15%; left: 30%; }
+.network-node:nth-child(16) { top: 85%; left: 70%; }
+.network-node:nth-child(17) { top: 50%; left: 10%; }
+.network-node:nth-child(18) { top: 50%; left: 90%; }
