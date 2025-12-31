@@ -1,6 +1,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
+import AvatarUpload from "./AvatarUpload"
 
 export default async function ProfilePage() {
   const supabase = await createSupabaseServerClient()
@@ -17,14 +18,12 @@ export default async function ProfilePage() {
     )
   }
 
-  /* Fetch profile */
   const { data: profile } = await supabase
     .from("profiles")
     .select("full_name, job_title, company, avatar_url, created_at")
     .eq("id", user.id)
     .single()
 
-  /* Profile completeness */
   const profileFields = [
     profile?.full_name,
     profile?.job_title,
@@ -36,11 +35,18 @@ export default async function ProfilePage() {
     (profileFields.filter(Boolean).length / profileFields.length) * 100
   )
 
-  /* Update profile */
   async function updateProfile(formData: FormData) {
     "use server"
 
     const supabase = await createSupabaseServerClient()
+
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+
+    if (!user) {
+      throw new Error("Not authenticated")
+    }
 
     await supabase
       .from("profiles")
@@ -54,43 +60,6 @@ export default async function ProfilePage() {
     revalidatePath("/profile")
   }
 
-  /* Upload avatar */
-  async function uploadAvatar(formData: FormData) {
-    "use server"
-
-    const supabase = await createSupabaseServerClient()
-
-    const {
-      data: { user }
-    } = await supabase.auth.getUser()
-
-    if (!user) return
-
-    const file = formData.get("avatar") as File
-    if (!file || file.size === 0) return
-
-    const fileExt = file.name.split(".").pop()
-    const filePath = `${user.id}/avatar.${fileExt}`
-
-    await supabase.storage
-      .from("avatars")
-      .upload(filePath, file, { upsert: true })
-
-    const { data } = supabase.storage
-      .from("avatars")
-      .getPublicUrl(filePath)
-
-    await supabase
-      .from("profiles")
-      .update({
-        avatar_url: data.publicUrl
-      })
-      .eq("id", user.id)
-
-    revalidatePath("/profile")
-  }
-
-  /* Logout */
   async function logout() {
     "use server"
 
@@ -106,7 +75,6 @@ export default async function ProfilePage() {
         Profile
       </h1>
 
-      {/* Identity and avatar */}
       <section className="border rounded-lg p-6 bg-white space-y-4">
         <div className="flex items-center gap-4">
           <div className="h-16 w-16 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-gray-500">
@@ -133,23 +101,9 @@ export default async function ProfilePage() {
           </div>
         </div>
 
-        <form action={uploadAvatar}>
-          <input
-            type="file"
-            name="avatar"
-            accept="image/*"
-            className="block text-sm"
-          />
-          <button
-            type="submit"
-            className="mt-2 px-3 py-1 border rounded text-sm"
-          >
-            Upload photo
-          </button>
-        </form>
+        <AvatarUpload />
       </section>
 
-      {/* Profile completeness */}
       <section className="border rounded-lg p-6 bg-white space-y-3">
         <div className="flex justify-between">
           <p className="font-medium">
@@ -168,34 +122,23 @@ export default async function ProfilePage() {
         </div>
       </section>
 
-      {/* Editable profile */}
       <section className="border rounded-lg p-6 bg-white">
-        <h2 className="font-medium mb-4">
-          Professional information
-        </h2>
-
         <form action={updateProfile} className="space-y-4">
           <input
             name="full_name"
             defaultValue={profile?.full_name ?? ""}
-            placeholder="Full name"
             className="w-full border rounded px-3 py-2"
           />
-
           <input
             name="job_title"
             defaultValue={profile?.job_title ?? ""}
-            placeholder="Job title"
             className="w-full border rounded px-3 py-2"
           />
-
           <input
             name="company"
             defaultValue={profile?.company ?? ""}
-            placeholder="Company"
             className="w-full border rounded px-3 py-2"
           />
-
           <button
             type="submit"
             className="px-4 py-2 bg-black text-white rounded"
@@ -205,7 +148,6 @@ export default async function ProfilePage() {
         </form>
       </section>
 
-      {/* Logout */}
       <form action={logout}>
         <button
           type="submit"

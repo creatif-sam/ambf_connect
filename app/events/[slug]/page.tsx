@@ -75,29 +75,20 @@ export default async function EventDetailPage({ params }: PageProps) {
       profile: m.profiles as Profile
     }))
 
-  const networkingRows = await getNetworkingMap(event.id, user.id)
-
-  const networkingMap = new Map<
-    string,
-    {
-      status: "pending" | "accepted" | "rejected"
-      direction: "incoming" | "outgoing"
-    }
-  >()
-
-  for (const row of networkingRows) {
-    networkingMap.set(row.other_profile_id, {
-      status: row.status,
-      direction: row.direction
-    })
-  }
+  /* Networking map is already a Record<string, string> */
+  const networkingMap = await getNetworkingMap(event.id, user.id)
 
   return (
     <main className="max-w-5xl mx-auto px-6 py-10">
       <header className="mb-10">
-        <h1 className="text-3xl font-bold">{event.title}</h1>
+        <h1 className="text-3xl font-bold">
+          {event.title}
+        </h1>
+
         {event.description && (
-          <p className="mt-2 text-gray-600">{event.description}</p>
+          <p className="mt-2 text-gray-600">
+            {event.description}
+          </p>
         )}
       </header>
 
@@ -108,7 +99,7 @@ export default async function EventDetailPage({ params }: PageProps) {
 
         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {attendees.map(attendee => {
-            const networking = networkingMap.get(attendee.profile.id)
+            const status = networkingMap[attendee.profile.id]
 
             return (
               <li
@@ -143,9 +134,9 @@ export default async function EventDetailPage({ params }: PageProps) {
                 </div>
 
                 <div>
-                  {networking ? (
+                  {status ? (
                     <span className="text-sm text-gray-600">
-                      {networking.status}
+                      {status}
                     </span>
                   ) : (
                     <span className="text-sm text-gray-400">
