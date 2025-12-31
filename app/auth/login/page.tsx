@@ -40,7 +40,7 @@ export default function LoginPage() {
 
         <p className="text-lg text-gray-300 text-center max-w-sm">
           A secure platform for events, announcements, and professional
-          networking within the Africa Med Forum ecosystem.
+          networking..
         </p>
       </div>
 

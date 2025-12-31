@@ -2,84 +2,110 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useEffect, useState } from "react"
 import {
   Home,
   Calendar,
   Users,
   Megaphone,
-  User
+  User,
+  LayoutDashboard
 } from "lucide-react"
+import { useEffect, useState } from "react"
 import { createSupabaseBrowserClient } from "@/lib/supabase/client"
+
+type NavItem = {
+  label: string
+  href: string
+  icon: any
+}
 
 export default function BottomNav() {
   const pathname = usePathname()
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const supabase = createSupabaseBrowserClient()
+
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false)
+  const [isOrganizer, setIsOrganizer] = useState<boolean>(false)
+  const [ready, setReady] = useState<boolean>(false)
 
   useEffect(() => {
-    const supabase = createSupabaseBrowserClient()
-    supabase.auth.getUser().then(({ data }) => {
-      setIsAuthenticated(!!data.user)
-    })
-  }, [])
+    async function loadAuthAndRole() {
+      const {
+        data: { user }
+      } = await supabase.auth.getUser()
 
-  const navItems = [
+      if (!user) {
+        setIsLoggedIn(false)
+        setIsOrganizer(false)
+        setReady(true)
+        return
+      }
+
+      setIsLoggedIn(true)
+
+      const { data: memberships } = await supabase
+        .from("event_members")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "organizer")
+        .limit(1)
+
+      setIsOrganizer(!!memberships && memberships.length > 0)
+      setReady(true)
+    }
+
+    loadAuthAndRole()
+  }, [supabase])
+
+  if (!ready) return null
+
+  const navItems: NavItem[] = [
     { label: "Home", href: "/", icon: Home },
     { label: "Events", href: "/events", icon: Calendar },
     { label: "Networking", href: "/networking", icon: Users },
-    { label: "Announcements", href: "/announcements", icon: Megaphone },
-    {
-      label: isAuthenticated ? "Profile" : "Login",
-      href: isAuthenticated ? "/profile" : "/auth/login",
-      icon: User
-    }
+    { label: "Announcements", href: "/announcements", icon: Megaphone }
   ]
 
-  const activeIndex = navItems.findIndex(
-    item =>
-      pathname === item.href ||
-      pathname.startsWith(item.href + "/")
-  )
+  if (isOrganizer) {
+    navItems.push({
+      label: "Dashboard",
+      href: "/dashboard",
+      icon: LayoutDashboard
+    })
+  }
+
+  navItems.push({
+    label: "Profile",
+    href: isLoggedIn ? "/profile" : "/auth/login",
+    icon: User
+  })
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-black border-t border-zinc-800">
-      <div className="relative h-16">
-        {/* Animated indicator */}
-        <span
-          className="absolute top-0 h-1 bg-yellow-400 transition-all duration-300 ease-out"
-          style={{
-            width: `${100 / navItems.length}%`,
-            transform: `translateX(${activeIndex * 100}%)`
-          }}
-        />
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-yellow-500/10 bg-black">
+      <ul className="flex justify-around items-center h-16">
+        {navItems.map(item => {
+          const isActive =
+            pathname === item.href ||
+            pathname.startsWith(item.href + "/")
 
-        <ul className="flex justify-around items-center h-full">
-          {navItems.map((item, index) => {
-            const isActive = index === activeIndex
-            const Icon = item.icon
+          const Icon = item.icon
 
-            return (
-              <li key={item.href} className="flex-1">
-                <Link
-                  href={item.href}
-                  className={`flex flex-col items-center text-[11px] transition-colors ${
-                    isActive
-                      ? "text-yellow-400"
-                      : "text-gray-400 hover:text-white"
-                  }`}
-                >
-                  <Icon
-                    className={`h-5 w-5 mb-1 transition-transform duration-300 ${
-                      isActive ? "scale-110" : "scale-100"
-                    }`}
-                  />
-                  {item.label}
-                </Link>
-              </li>
-            )
-          })}
-        </ul>
-      </div>
+          return (
+            <li key={item.label}>
+              <Link
+                href={item.href}
+                className={`
+                  flex flex-col items-center text-[11px]
+                  transition-all
+                  ${isActive ? "text-yellow-400" : "text-gray-400"}
+                `}
+              >
+                <Icon className="h-5 w-5 mb-1" />
+                {item.label}
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
     </nav>
   )
 }

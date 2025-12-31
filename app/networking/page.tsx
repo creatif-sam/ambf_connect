@@ -1,6 +1,7 @@
 import Link from "next/link"
-import { Lock, Users, ArrowRight } from "lucide-react"
+import { Users, ArrowRight } from "lucide-react"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import AnimatedNetworkBackground from "@/components/AnimatedNetworkBackground"
 
 export const dynamic = "force-dynamic"
 
@@ -16,35 +17,44 @@ export default async function NetworkingPage() {
      ========================= */
   if (!user) {
     return (
-      <main className="
-        min-h-[calc(100vh-64px)]
-        flex items-center justify-center
-        bg-gradient-to-br from-black via-zinc-900 to-black
-        px-6
-      ">
-        <div className="
-          max-w-lg w-full
-          rounded-2xl
-          border border-yellow-500/20
-          bg-gradient-to-br from-zinc-900 to-black
-          p-10
-          text-center
-          shadow-2xl
-        ">
+      <main
+        className="
+          relative min-h-[calc(100vh-64px)]
+          flex items-center justify-center
+          bg-gradient-to-br from-black via-zinc-900 to-black
+          px-6
+        "
+      >
+        <AnimatedNetworkBackground />
+
+        <div
+          className="
+            relative z-10
+            max-w-lg w-full
+            rounded-2xl
+            border border-yellow-500/20
+            bg-black/80 backdrop-blur
+            p-10
+            text-center
+            shadow-2xl
+          "
+        >
           {/* Icon */}
-          <div className="
-            mx-auto h-20 w-20 rounded-full
-            flex items-center justify-center
-            bg-gradient-to-br from-yellow-400 to-yellow-600
-            text-black
-            animate-lock-reveal animate-gold-pulse
-          ">
+          <div
+            className="
+              mx-auto h-20 w-20 rounded-full
+              flex items-center justify-center
+              bg-gradient-to-br from-yellow-400 to-yellow-600
+              text-black
+              animate-lock-reveal animate-gold-pulse
+            "
+          >
             <Users className="h-9 w-9" />
           </div>
 
           {/* Title */}
           <h1 className="mt-6 text-3xl font-bold text-white">
-            Networking is locked
+            Build meaningful connections
           </h1>
 
           {/* Theme */}
@@ -54,9 +64,9 @@ export default async function NetworkingPage() {
 
           {/* Description */}
           <p className="mt-4 text-gray-400 leading-relaxed">
-            AMBF Connect networking allows you to discover professionals,
-            send connection requests, and build strategic relationships
-            across events and forums.
+            Networking on AMBF Connect is designed for professionals,
+            founders, and leaders to meet, collaborate, and convert
+            conversations into real economic value.
           </p>
 
           {/* CTA */}
@@ -85,6 +95,34 @@ export default async function NetworkingPage() {
         </div>
       </main>
     )
+  }
+
+  /* =========================
+     SERVER ACTIONS
+     ========================= */
+
+  // Accept a networking request
+  async function acceptRequest(requestId: string) {
+    "use server"
+
+    const supabase = await createSupabaseServerClient()
+
+    await supabase
+      .from("networking_requests")
+      .update({ status: "accepted" })
+      .eq("id", requestId)
+  }
+
+  // Reject a networking request
+  async function rejectRequest(requestId: string) {
+    "use server"
+
+    const supabase = await createSupabaseServerClient()
+
+    await supabase
+      .from("networking_requests")
+      .delete()
+      .eq("id", requestId)
   }
 
   /* =========================
@@ -121,19 +159,15 @@ export default async function NetworkingPage() {
 
   /* 3. Collect IDs */
   const userIds = Array.from(
-    new Set(
-      requests.flatMap(r => [r.sender_id, r.receiver_id])
-    )
+    new Set(requests.flatMap(r => [r.sender_id, r.receiver_id]))
   )
 
-  const eventIds = Array.from(
-    new Set(requests.map(r => r.event_id))
-  )
+  const eventIds = Array.from(new Set(requests.map(r => r.event_id)))
 
   /* 4. Fetch profiles */
   const { data: profiles } = await supabase
     .from("profiles")
-    .select("id, full_name, avatar_url")
+    .select("id, full_name, avatar_url, job_title, company")
     .in("id", userIds)
 
   /* 5. Fetch events */
@@ -143,66 +177,165 @@ export default async function NetworkingPage() {
     .in("id", eventIds)
 
   /* 6. Build maps */
-  const profileMap = Object.fromEntries(
-    (profiles ?? []).map(p => [p.id, p])
-  )
+  const profileMap = Object.fromEntries((profiles ?? []).map(p => [p.id, p]))
+  const eventMap = Object.fromEntries((events ?? []).map(e => [e.id, e]))
 
-  const eventMap = Object.fromEntries(
-    (events ?? []).map(e => [e.id, e])
-  )
-
-  /* 7. Render authenticated networking */
+  /* =========================
+     RENDER
+     ========================= */
   return (
     <main className="max-w-4xl mx-auto p-8 space-y-10">
       <h1 className="text-2xl font-semibold">My Network</h1>
 
+      {/* Connections */}
       <section>
         <h2 className="text-xl mb-3">Connections</h2>
         {connections.map(r => {
           const otherId =
-            r.sender_id === user.id
-              ? r.receiver_id
-              : r.sender_id
+            r.sender_id === user.id ? r.receiver_id : r.sender_id
+          const profile = profileMap[otherId]
 
           return (
-            <div key={r.id} className="border p-4 rounded mb-2">
-              <p className="font-medium">
-                {profileMap[otherId]?.full_name ?? "Unknown"}
-              </p>
-              <p className="text-sm text-gray-500">
-                Event: {eventMap[r.event_id]?.title}
-              </p>
+            <div
+              key={r.id}
+              className="border p-4 rounded mb-2 flex items-center gap-4"
+            >
+              <div className="h-10 w-10 rounded-full bg-gray-200 overflow-hidden">
+                {profile?.avatar_url && (
+                  <img
+                    src={profile.avatar_url}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                )}
+              </div>
+
+              <div>
+                <p className="font-medium">
+                  {profile?.full_name ?? "Unknown"}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {[profile?.job_title, profile?.company]
+                    .filter(Boolean)
+                    .join(" • ")}
+                </p>
+                <p className="text-xs text-gray-400">
+                  Event: {eventMap[r.event_id]?.title}
+                </p>
+              </div>
             </div>
           )
         })}
       </section>
 
+      {/* Received requests */}
       <section>
         <h2 className="text-xl mb-3">Received requests</h2>
-        {received.map(r => (
-          <div key={r.id} className="border p-4 rounded mb-2">
-            <p className="font-medium">
-              {profileMap[r.sender_id]?.full_name}
-            </p>
-            <p className="text-sm text-gray-500">
-              Event: {eventMap[r.event_id]?.title}
-            </p>
-          </div>
-        ))}
+        {received.map(r => {
+          const profile = profileMap[r.sender_id]
+
+          return (
+            <div
+              key={r.id}
+              className="border p-4 rounded mb-2 flex items-center gap-4"
+            >
+              <div className="h-10 w-10 rounded-full bg-gray-200 overflow-hidden">
+                {profile?.avatar_url && (
+                  <img
+                    src={profile.avatar_url}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                )}
+              </div>
+
+              <div className="flex-1">
+                <p className="font-medium">
+                  {profile?.full_name}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {[profile?.job_title, profile?.company]
+                    .filter(Boolean)
+                    .join(" • ")}
+                </p>
+                <p className="text-xs text-gray-400">
+                  Event: {eventMap[r.event_id]?.title}
+                </p>
+              </div>
+
+              {/* ACTION BUTTONS */}
+              <div className="flex gap-2">
+                <form action={acceptRequest.bind(null, r.id)}>
+                  <button
+                    type="submit"
+                    className="
+                      px-3 py-1.5 rounded-md
+                      bg-gradient-to-r from-green-500 to-emerald-600
+                      text-white text-xs font-medium
+                      hover:opacity-90 transition
+                    "
+                  >
+                    Accept
+                  </button>
+                </form>
+
+                <form action={rejectRequest.bind(null, r.id)}>
+                  <button
+                    type="submit"
+                    className="
+                      px-3 py-1.5 rounded-md
+                      border border-red-500
+                      text-red-500 text-xs font-medium
+                      hover:bg-red-500 hover:text-white
+                      transition
+                    "
+                  >
+                    Reject
+                  </button>
+                </form>
+              </div>
+            </div>
+          )
+        })}
       </section>
 
+      {/* Sent requests */}
       <section>
         <h2 className="text-xl mb-3">Sent requests</h2>
-        {sent.map(r => (
-          <div key={r.id} className="border p-4 rounded mb-2">
-            <p className="font-medium">
-              {profileMap[r.receiver_id]?.full_name}
-            </p>
-            <p className="text-sm text-gray-500">
-              Event: {eventMap[r.event_id]?.title}
-            </p>
-          </div>
-        ))}
+        {sent.map(r => {
+          const profile = profileMap[r.receiver_id]
+
+          return (
+            <div
+              key={r.id}
+              className="border p-4 rounded mb-2 flex items-center gap-4"
+            >
+              <div className="h-10 w-10 rounded-full bg-gray-200 overflow-hidden">
+                {profile?.avatar_url && (
+                  <img
+                    src={profile.avatar_url}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                )}
+              </div>
+
+              <div>
+                <p className="font-medium">
+                  {profile?.full_name}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {[profile?.job_title, profile?.company]
+                    .filter(Boolean)
+                    .join(" • ")}
+                </p>
+                <p className="text-xs text-gray-400">
+                  Event: {eventMap[r.event_id]?.title}
+                </p>
+              </div>
+            </div>
+          )
+        })}
       </section>
     </main>
   )

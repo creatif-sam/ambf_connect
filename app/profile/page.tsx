@@ -10,13 +10,10 @@ export default async function ProfilePage() {
     data: { user }
   } = await supabase.auth.getUser()
 
-  if (!user) {
-    return (
-      <main className="max-w-xl mx-auto p-8">
-        <p>You must be logged in to view your profile.</p>
-      </main>
-    )
-  }
+if (!user) {
+  redirect("/auth/login")
+}
+
 
   const { data: profile } = await supabase
     .from("profiles")
