@@ -1,29 +1,49 @@
-import { cookies } from "next/headers"
 import { createServerClient } from "@supabase/ssr"
-import { throwServerError } from "@/lib/utils/throwServerError"
+import { cookies } from "next/headers"
 
+/**
+ * READ ONLY CLIENT
+ * Safe for Server Components
+ * Will NEVER write cookies
+ */
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies()
 
-  try {
-    return createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(name: string, value: string, options: any) {
-            cookieStore.set({ name, value, ...options })
-          },
-          remove(name: string, options: any) {
-            cookieStore.set({ name, value: "", ...options })
-          }
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
         }
       }
-    )
-  } catch (error) {
-    throwServerError(error)
-  }
+    }
+  )
+}
+
+/**
+ * MUTABLE CLIENT
+ * ONLY use inside Server Actions or Route Handlers
+ */
+export async function createSupabaseActionClient() {
+  const cookieStore = await cookies()
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value
+        },
+        set(name: string, value: string, options: any) {
+          cookieStore.set({ name, value, ...options })
+        },
+        remove(name: string, options: any) {
+          cookieStore.set({ name, value: "", ...options })
+        }
+      }
+    }
+  )
 }

@@ -1,6 +1,8 @@
-import { supabase } from "@/lib/supabase/client"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 
-export async function fetchEventAttendees(eventId: string) {
+export async function getEventAttendees(eventId: string) {
+  const supabase = await createSupabaseServerClient()
+
   const { data, error } = await supabase
     .from("event_members")
     .select(`
@@ -13,6 +15,9 @@ export async function fetchEventAttendees(eventId: string) {
     `)
     .eq("event_id", eventId)
 
-  if (error) throw error
+  if (error) {
+    throw error
+  }
+
   return data
 }

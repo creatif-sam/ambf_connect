@@ -1,56 +1,23 @@
-import { supabase } from "@/lib/supabase/client"
+import { createSupabaseServerClient } from "@/lib/supabase/server"
 
-export async function sendConnectionRequest(
-  eventId: string,
-  receiverId: string
-) {
-  const { data } = await supabase.auth.getUser()
-  if (!data.user) throw new Error("Not authenticated")
+export async function getNetworkingMap(eventId: string, userId: string) {
+  const supabase = await createSupabaseServerClient()
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("networking_requests")
-    .insert({
-      event_id: eventId,
-      sender_id: data.user.id,
-      receiver_id: receiverId,
-      status: "pending"
-    })
-
-  if (error) throw error
-}
-
-export async function fetchIncomingRequests(eventId: string) {
-  const { data } = await supabase.auth.getUser()
-  if (!data.user) return []
-
-  const { data: requests, error } = await supabase
-    .from("networking_requests")
-    .select(`
-      id,
-      sender_id,
-      status,
-      profiles:sender_id (
-        id,
-        full_name,
-        avatar_url
-      )
-    `)
+    .select("receiver_id, status")
     .eq("event_id", eventId)
-    .eq("receiver_id", data.user.id)
-    .eq("status", "pending")
+    .eq("sender_id", userId)
 
-  if (error) throw error
-  return requests
-}
+  if (error) {
+    throw error
+  }
 
-export async function updateRequestStatus(
-  requestId: string,
-  status: "accepted" | "rejected"
-) {
-  const { error } = await supabase
-    .from("networking_requests")
-    .update({ status })
-    .eq("id", requestId)
+  const map: Record<string, string> = {}
 
-  if (error) throw error
+  data.forEach(r => {
+    map[r.receiver_id] = r.status
+  })
+
+  return map
 }
