@@ -3,7 +3,10 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 
-export async function uploadAvatarAction(formData: FormData) {
+export async function uploadAvatar(formData: FormData) {
+  const file = formData.get("avatar") as File | null
+  if (!file) return
+
   const supabase = await createSupabaseServerClient()
 
   const {
@@ -14,35 +17,27 @@ export async function uploadAvatarAction(formData: FormData) {
     throw new Error("Not authenticated")
   }
 
-  const file = formData.get("avatar") as File
-
-  if (!file) {
-    throw new Error("No file received")
-  }
-
-  const ext = file.name.split(".").pop()
-  const path = `${user.id}/avatar.${ext}`
+  const fileExt = file.name.split(".").pop()
+  const filePath = `${user.id}.${fileExt}`
 
   const { error: uploadError } = await supabase.storage
     .from("avatars")
-    .upload(path, file, { upsert: true })
+    .upload(filePath, file, {
+      upsert: true
+    })
 
-  if (uploadError) {
-    throw uploadError
-  }
+  if (uploadError) throw uploadError
 
-  const { data } = supabase.storage
+  const {
+    data: { publicUrl }
+  } = supabase.storage
     .from("avatars")
-    .getPublicUrl(path)
+    .getPublicUrl(filePath)
 
-  const { error: updateError } = await supabase
+  await supabase
     .from("profiles")
-    .update({ avatar_url: data.publicUrl })
+    .update({ avatar_url: publicUrl })
     .eq("id", user.id)
-
-  if (updateError) {
-    throw updateError
-  }
 
   revalidatePath("/profile")
 }

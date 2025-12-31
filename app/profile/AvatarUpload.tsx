@@ -1,40 +1,33 @@
 "use client"
 
-import { useState, useTransition } from "react"
-import { uploadAvatarAction } from "./actions"
-
+import { useTransition } from "react"
+import { uploadAvatar } from "./actions"
 
 export default function AvatarUpload() {
-  const [file, setFile] = useState<File | null>(null)
   const [pending, startTransition] = useTransition()
 
-  function handleUpload() {
-    if (!file) return
-
-    const formData = new FormData()
-    formData.append("avatar", file)
-
-    startTransition(async () => {
-      await uploadAvatarAction(formData)
+  function handleSubmit(formData: FormData) {
+    startTransition(() => {
+      uploadAvatar(formData)
     })
   }
 
   return (
-    <div className="space-y-2">
+    <form action={handleSubmit} className="space-y-2">
       <input
         type="file"
+        name="avatar"
         accept="image/*"
-        onChange={e => setFile(e.target.files?.[0] ?? null)}
+        required
       />
 
       <button
-        type="button"
-        onClick={handleUpload}
-        disabled={!file || pending}
-        className="px-3 py-1 border rounded disabled:opacity-50"
+        type="submit"
+        disabled={pending}
+        className="px-4 py-2 border rounded"
       >
         {pending ? "Uploading..." : "Upload photo"}
       </button>
-    </div>
+    </form>
   )
 }
