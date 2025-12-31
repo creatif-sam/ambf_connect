@@ -1,11 +1,6 @@
-import type { Metadata } from "next"
 import "./globals.css"
-import ClientProviders from "./providers"
-
-export const metadata: Metadata = {
-  title: "AMBF Connect",
-  description: "Event platform for conferences and networking"
-}
+import TopNav from "@/components/TopNav"
+import NavGuard from "@/components/NavGuard"
 
 export default function RootLayout({
   children
@@ -13,11 +8,15 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body suppressHydrationWarning className="antialiased">
-        <ClientProviders>
+    <html lang="en">
+      <body>
+        <TopNav />
+
+        <main className="pt-14 pb-16">
           {children}
-        </ClientProviders>
+        </main>
+
+        <NavGuard />
       </body>
     </html>
   )

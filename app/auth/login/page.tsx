@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation"
 
 export default function LoginPage() {
   const router = useRouter()
+
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -28,37 +29,89 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="p-4 max-w-md mx-auto">
-      <h1 className="text-xl font-semibold mb-4">Sign in</h1>
+    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2">
+      {/* Left panel */}
+      <div className="hidden md:flex flex-col justify-center items-center bg-gradient-to-br from-black via-zinc-900 to-zinc-800 text-white px-12">
+        <h1 className="text-4xl font-bold mb-4">
+          AMBF Connect
+        </h1>
+        <p className="text-lg text-gray-300 text-center max-w-sm">
+          Your gateway to conferences, networking, and meaningful connections.
+        </p>
+      </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="email"
-          placeholder="Email"
-          required
-          className="w-full border p-2 rounded"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-        />
+      {/* Right panel */}
+      <div className="flex flex-col justify-center px-6 md:px-16 bg-white">
+        <div className="max-w-md w-full mx-auto space-y-6">
+          <h2 className="text-3xl font-semibold">
+            Access your account
+          </h2>
 
-        <input
-          type="password"
-          placeholder="Password"
-          required
-          className="w-full border p-2 rounded"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-        />
+          <p className="text-gray-600">
+            Sign in to continue to AMBF Connect
+          </p>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <input
+              type="email"
+              placeholder="Email address"
+              required
+              className="w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+            />
 
-        <button
-          disabled={loading}
-          className="w-full bg-black text-white py-2 rounded"
-        >
-          {loading ? "Signing in..." : "Sign in"}
-        </button>
-      </form>
-    </main>
+            <input
+              type="password"
+              placeholder="Password"
+              required
+              className="w-full border rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+            />
+
+            {error && (
+              <p className="text-sm text-red-600">
+                {error}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-black text-white py-3 rounded-lg font-medium hover:bg-zinc-900 disabled:opacity-60"
+            >
+              {loading ? "Signing in..." : "Sign in"}
+            </button>
+          </form>
+
+          <div className="text-right">
+  <a
+    href="/auth/forgot-password"
+    className="text-sm text-gray-600 hover:text-black"
+  >
+    Forgot password?
+  </a>
+</div>
+
+
+          <div className="border rounded-lg p-4 text-sm text-gray-600 bg-gray-50">
+            <strong>No account yet?</strong> Contact the event organizer or
+            administrator to receive access.
+          </div>
+
+          <p className="text-xs text-gray-500 text-center mt-4">
+  By signing in, you agree to our{" "}
+  <a
+    href="/privacy-policy"
+    className="underline hover:text-black"
+  >
+    Privacy Policy
+  </a>
+</p>
+
+        </div>
+      </div>
+    </div>
   )
 }
