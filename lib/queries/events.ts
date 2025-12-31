@@ -1,8 +1,4 @@
-import { createSupabaseBrowserClient } from "@/lib/supabase/client"
-
-/* =========================
-   CREATE EVENT
-   ========================= */
+import { supabase } from "@/lib/supabase/client"
 
 export async function createEvent(input: {
   title: string
@@ -11,65 +7,24 @@ export async function createEvent(input: {
   start_date: string
   end_date: string
 }) {
-  const supabase = createSupabaseBrowserClient()
-
-  const {
-    data: { user }
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    throw new Error("Not authenticated")
-  }
+  const { data: user } = await supabase.auth.getUser()
+  if (!user.user) throw new Error("Not authenticated")
 
   const { error } = await supabase.from("events").insert({
-    title: input.title,
-    description: input.description,
-    slug: input.slug,
-    start_date: input.start_date,
-    end_date: input.end_date,
-    created_by: user.id
+    ...input,
+    created_by: user.user.id
   })
 
-  if (error) {
-    throw error
-  }
+  if (error) throw error
 }
 
-/* =========================
-   FETCH EVENTS
-   ========================= */
-
-export async function fetchEvents() {
-  const supabase = createSupabaseBrowserClient()
-
+export async function fetchPublicEvents() {
   const { data, error } = await supabase
     .from("events")
     .select("*")
-    .order("start_date", { ascending: true })
+    .eq("is_published", true)
+    .order("start_date")
 
-  if (error) {
-    throw error
-  }
-
-  return data ?? []
-}
-
-/* =========================
-   FETCH SINGLE EVENT
-   ========================= */
-
-export async function fetchEventBySlug(slug: string) {
-  const supabase = createSupabaseBrowserClient()
-
-  const { data, error } = await supabase
-    .from("events")
-    .select("*")
-    .eq("slug", slug)
-    .single()
-
-  if (error) {
-    throw error
-  }
-
+  if (error) throw error
   return data
 }
