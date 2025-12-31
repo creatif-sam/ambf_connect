@@ -1,123 +1,143 @@
+import Link from "next/link"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { revalidatePath } from "next/cache"
 
 type PageProps = {
-  params: {
+  params: Promise<{
     eventId: string
-  }
+  }>
 }
 
-export default async function AgendaEditorPage({ params }: PageProps) {
+export default async function AdminAgendaPage({ params }: PageProps) {
+  /* =====================================================
+     NEXT 15 FIX: params is async and must be awaited
+     ===================================================== */
+  const { eventId } = await params
+
+  if (!eventId) {
+    throw new Error("Event ID is missing from route")
+  }
+
   const supabase = await createSupabaseServerClient()
 
-  const {
-    data: { user }
-  } = await supabase.auth.getUser()
-
-  if (!user) {
-    throw new Error("Unauthorized")
-  }
-
-  const { data: days } = await supabase
-    .from("agenda_days")
+  /* =====================================================
+     FETCH SESSIONS FOR THIS EVENT
+     ===================================================== */
+  const { data: sessions, error } = await supabase
+    .from("sessions")
     .select("*")
-    .eq("event_id", params.eventId)
-    .order("day_date", { ascending: true })
+    .eq("event_id", eventId)
+    .order("day", { ascending: true })
+    .order("start_time", { ascending: true })
 
-  async function addDay(formData: FormData) {
-    "use server"
-
-    const supabase = await createSupabaseServerClient()
-
-    await supabase.from("agenda_days").insert({
-      event_id: params.eventId,
-      day_label: formData.get("day_label"),
-      day_date: formData.get("day_date")
-    })
-
-    revalidatePath(`/dashboard/events/${params.eventId}/agenda`)
+  if (error) {
+    throw new Error(error.message)
   }
 
-  async function deleteDay(id: string) {
-    "use server"
-
-    const supabase = await createSupabaseServerClient()
-    await supabase.from("agenda_days").delete().eq("id", id)
-
-    revalidatePath(`/dashboard/events/${params.eventId}/agenda`)
-  }
+  /* =====================================================
+     SPLIT SESSIONS BY DAY
+     ===================================================== */
+  const day1 = sessions?.filter(s => s.day === "day1") ?? []
+  const day2 = sessions?.filter(s => s.day === "day2") ?? []
 
   return (
-    <main className="max-w-3xl mx-auto p-8 space-y-8">
-      <h1 className="text-2xl font-semibold">
-        Agenda Builder
-      </h1>
-
-      <section className="border rounded-lg p-6 bg-white space-y-4">
-        <h2 className="font-medium">
-          Add agenda day
-        </h2>
-
-        <form action={addDay} className="grid gap-3">
-          <input
-            name="day_label"
-            placeholder="Day 1"
-            required
-            className="border rounded px-3 py-2"
-          />
-
-          <input
-            type="date"
-            name="day_date"
-            required
-            className="border rounded px-3 py-2"
-          />
-
-          <button
-            type="submit"
-            className="self-start px-4 py-2 bg-black text-white rounded"
-          >
-            Add day
-          </button>
-        </form>
-      </section>
-
-      <section className="space-y-4">
-        <h2 className="font-medium">
-          Existing agenda days
-        </h2>
-
-        {!days || days.length === 0 ? (
-          <p className="text-gray-500">
-            No agenda days created yet.
+    <main className="p-6 space-y-10">
+      {/* ================= HEADER ================= */}
+      <header className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">
+            Agenda Management
+          </h1>
+          <p className="text-sm text-gray-500">
+            Create, edit, and publish sessions for this event
           </p>
-        ) : (
-          days.map(day => (
-            <div
-              key={day.id}
-              className="flex justify-between items-center border rounded p-4"
-            >
-              <div>
-                <p className="font-medium">
-                  {day.day_label}
-                </p>
-                <p className="text-sm text-gray-500">
-                  {new Date(day.day_date).toDateString()}
-                </p>
-              </div>
+        </div>
 
-              <form action={deleteDay.bind(null, day.id)}>
-                <button
-                  type="submit"
-                  className="text-red-600 text-sm"
-                >
-                  Delete
-                </button>
-              </form>
-            </div>
-          ))
-        )}
-      </section>
+        <Link
+          href={`/dashboard/events/${eventId}/sessions/create`}
+          className="px-4 py-2 rounded-lg bg-black text-white"
+        >
+          Add session
+        </Link>
+      </header>
+
+      {/* ================= DAY 1 ================= */}
+      <AgendaDay
+        title="Day 1 16th"
+        sessions={day1}
+        eventId={eventId}
+      />
+
+      {/* ================= DAY 2 ================= */}
+      <AgendaDay
+        title="Day 2 17th"
+        sessions={day2}
+        eventId={eventId}
+      />
     </main>
+  )
+}
+
+/* =====================================================
+   AGENDA DAY SECTION
+   ===================================================== */
+function AgendaDay({
+  title,
+  sessions,
+  eventId
+}: {
+  title: string
+  sessions: any[]
+  eventId: string
+}) {
+  return (
+    <section className="space-y-4">
+      <h2 className="text-lg font-semibold">
+        {title}
+      </h2>
+
+      {sessions.length === 0 && (
+        <p className="text-sm text-gray-500">
+          No sessions scheduled for this day
+        </p>
+      )}
+
+      {sessions.map(session => (
+        <div
+          key={session.id}
+          className="flex items-start justify-between rounded-xl border p-4"
+        >
+          {/* LEFT INFO */}
+          <div className="space-y-1">
+            <p className="text-sm text-gray-500">
+              {session.start_time} to {session.end_time}
+            </p>
+
+            <p className="font-medium">
+              {session.title}
+            </p>
+
+            <div className="flex gap-2 text-xs mt-1">
+              <span className="px-2 py-0.5 rounded bg-gray-100">
+                {session.session_type}
+              </span>
+
+              {!session.is_published && (
+                <span className="px-2 py-0.5 rounded bg-yellow-100 text-yellow-800">
+                  Draft
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* ACTIONS */}
+          <Link
+            href={`/dashboard/events/${eventId}/sessions/${session.id}/edit`}
+            className="text-sm underline"
+          >
+            Edit
+          </Link>
+        </div>
+      ))}
+    </section>
   )
 }

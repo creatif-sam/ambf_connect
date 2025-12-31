@@ -2,15 +2,13 @@
 
 import { useState } from "react"
 import { useParams, useRouter } from "next/navigation"
-import {
-  Save,
-  Clock,
-  LayoutList
-} from "lucide-react"
+import { Save, Clock } from "lucide-react"
 import { createSupabaseBrowserClient } from "@/lib/supabase/client"
+import { DAY_OPTIONS } from "@/lib/constants/agenda"
 
 export default function CreateSessionPage() {
-  const { eventId } = useParams()
+  const params = useParams()
+  const eventId = params?.eventId as string
   const router = useRouter()
   const supabase = createSupabaseBrowserClient()
 
@@ -20,14 +18,19 @@ export default function CreateSessionPage() {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [sessionType, setSessionType] = useState("")
-  const [day, setDay] = useState("Day 1")
+  const [day, setDay] = useState<"day1" | "day2">("day1")
   const [startTime, setStartTime] = useState("")
   const [endTime, setEndTime] = useState("")
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   /* ===============================
-     SUBMIT HANDLER
+     HELPERS
+     =============================== */
+ 
+
+  /* ===============================
+     SUBMIT
      =============================== */
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -39,9 +42,10 @@ export default function CreateSessionPage() {
       title,
       description,
       session_type: sessionType,
-      day,
+      day, // ✅ day1 | day2
       start_time: startTime,
-      end_time: endTime,
+end_time: endTime,
+
       is_published: false
     })
 
@@ -56,17 +60,15 @@ export default function CreateSessionPage() {
 
   return (
     <main className="max-w-3xl mx-auto p-6 space-y-8">
-      {/* ================= HEADER ================= */}
+      {/* HEADER */}
       <header>
-        <h1 className="text-2xl font-semibold">
-          Create session
-        </h1>
+        <h1 className="text-2xl font-semibold">Create session</h1>
         <p className="text-sm text-gray-500">
           Add a new session to your event program
         </p>
       </header>
 
-      {/* ================= FORM ================= */}
+      {/* FORM */}
       <form
         onSubmit={handleSubmit}
         className="space-y-6 bg-white border rounded-xl p-6"
@@ -95,11 +97,10 @@ export default function CreateSessionPage() {
             onChange={e => setDescription(e.target.value)}
             rows={4}
             className="w-full border rounded-lg px-4 py-2"
-            placeholder="Describe the session purpose and content"
           />
         </div>
 
-        {/* Session Type */}
+        {/* Session type */}
         <div>
           <label className="block text-sm font-medium mb-1">
             Session type
@@ -112,18 +113,21 @@ export default function CreateSessionPage() {
           />
         </div>
 
-        {/* Day Selector */}
+        {/* Day */}
         <div>
           <label className="block text-sm font-medium mb-1">
             Day
           </label>
           <select
             value={day}
-            onChange={e => setDay(e.target.value)}
+            onChange={e => setDay(e.target.value as "day1" | "day2")}
             className="w-full border rounded-lg px-4 py-2"
           >
-            <option value="Day 1">Day 1 – 16th</option>
-            <option value="Day 2">Day 2 – 17th</option>
+            {DAY_OPTIONS.map(d => (
+              <option key={d.value} value={d.value}>
+                {d.label}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -163,11 +167,7 @@ export default function CreateSessionPage() {
         </div>
 
         {/* Error */}
-        {error && (
-          <p className="text-sm text-red-600">
-            {error}
-          </p>
-        )}
+        {error && <p className="text-sm text-red-600">{error}</p>}
 
         {/* Actions */}
         <div className="flex justify-end gap-3">
@@ -184,14 +184,7 @@ export default function CreateSessionPage() {
           <button
             type="submit"
             disabled={saving}
-            className="
-              inline-flex items-center gap-2
-              px-5 py-2 rounded-lg
-              bg-black text-white
-              hover:bg-zinc-900
-              disabled:opacity-60
-              transition
-            "
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-lg bg-black text-white disabled:opacity-60"
           >
             <Save className="h-4 w-4" />
             {saving ? "Saving..." : "Create session"}
