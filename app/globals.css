@@ -131,3 +131,21 @@ body {
 .network-node:nth-child(16) { top: 85%; left: 70%; }
 .network-node:nth-child(17) { top: 50%; left: 10%; }
 .network-node:nth-child(18) { top: 50%; left: 90%; }
+
+
+
+{/* Emergency Call Modal Styles */}
+
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%)
+  }
+  to {
+    transform: translateY(0)
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.35s ease-out;
+}

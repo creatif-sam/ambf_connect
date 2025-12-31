@@ -2,13 +2,10 @@ import Link from "next/link"
 import {
   LogIn,
   Lock,
-  BadgeCheck,
-  Megaphone,
-  Calendar,
-  LayoutList,
-  Phone
+  BadgeCheck
 } from "lucide-react"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import EventHubTabs from "@/components/EventHubTabs"
 
 export const dynamic = "force-dynamic"
 
@@ -19,9 +16,9 @@ export default async function AnnouncementsPage() {
     data: { user }
   } = await supabase.auth.getUser()
 
-  /* ======================================================
+  /* ===============================
      UNAUTHENTICATED STATE
-     ====================================================== */
+     =============================== */
   if (!user) {
     return (
       <main className="min-h-[70vh] flex items-center justify-center px-6 text-white">
@@ -40,8 +37,8 @@ export default async function AnnouncementsPage() {
             </p>
 
             <p className="text-gray-400 leading-relaxed">
-              Announcements, agenda updates, session details and emergency
-              contacts are available to authenticated participants only.
+              Announcements, agenda updates, sessions and emergency contacts
+              are available only to authenticated participants.
             </p>
 
             <div className="space-y-3">
@@ -71,25 +68,16 @@ export default async function AnnouncementsPage() {
     )
   }
 
-  /* ======================================================
+  /* ===============================
      AUTHENTICATED STATE
-     ====================================================== */
+     =============================== */
 
   const { data: memberships } = await supabase
     .from("event_members")
     .select("event_id")
     .eq("user_id", user.id)
 
-  if (!memberships || memberships.length === 0) {
-    return (
-      <main className="max-w-3xl mx-auto p-8">
-        <h1 className="text-2xl font-semibold">Announcements</h1>
-        <p className="text-gray-500 mt-4">No announcements yet.</p>
-      </main>
-    )
-  }
-
-  const eventIds = memberships.map(m => m.event_id)
+  const eventIds = memberships?.map(m => m.event_id) ?? []
 
   const { data: announcements } = await supabase
     .from("announcements")
@@ -98,68 +86,37 @@ export default async function AnnouncementsPage() {
       title,
       body,
       created_at,
-      events (
-        id,
-        title
-      )
+      events ( id, title )
     `)
     .in("event_id", eventIds)
     .order("created_at", { ascending: false })
 
-  /* ======================================================
-     PAGE RENDER
-     ====================================================== */
   return (
-    <main className="max-w-3xl mx-auto px-4 pt-6 pb-24 space-y-6">
-      <h1 className="text-2xl font-semibold text-white">
+    <main className="max-w-3xl mx-auto px-4 pb-24">
+      <h1 className="text-2xl font-semibold text-white pt-4 pb-3">
         Event Hub
       </h1>
 
-      {/* ======================================================
-          STICKY ICON TAB BAR
-         ====================================================== */}
-      <div className="sticky top-0 z-40 bg-black -mx-4 px-4 pb-3 border-b border-yellow-500/20">
-        <div className="flex gap-2 overflow-x-auto pt-3">
-          {[
-            { label: "Announcements", icon: Megaphone, active: true },
-            { label: "Agenda", icon: Calendar },
-            { label: "Sessions", icon: LayoutList },
-            { label: "Emergency", icon: Phone }
-          ].map(tab => {
-            const Icon = tab.icon
-            return (
-              <button
-                key={tab.label}
-                className={`
-                  flex items-center gap-2
-                  px-4 py-2 rounded-full text-sm font-medium
-                  whitespace-nowrap transition
-                  ${
-                    tab.active
-                      ? "bg-gradient-to-r from-yellow-400 to-yellow-600 text-black"
-                      : "bg-zinc-900 text-gray-400 hover:text-yellow-400"
-                  }
-                `}
-              >
-                <Icon className="h-4 w-4" />
-                {tab.label}
-              </button>
-            )
-          })}
-        </div>
-      </div>
+      {/* Sticky tabs */}
+      <EventHubTabs
+        announcementsCount={announcements?.length ?? 0}
+      />
 
-      {/* ======================================================
-          ANNOUNCEMENTS LIST
-         ====================================================== */}
-      {!announcements || announcements.length === 0 ? (
-        <p className="text-gray-500">No announcements yet.</p>
-      ) : (
-        <ul className="space-y-4">
-          {announcements.map(a => (
-            <li
+      {/* Announcements list */}
+      <div className="pt-6 space-y-4">
+        {!announcements || announcements.length === 0 ? (
+          <p className="text-gray-500">No announcements yet.</p>
+        ) : (
+          announcements.map(a => (
+            <div
               key={a.id}
-              className="rounded-xl p-5 bg-gradient-to-br from-black to-zinc-900 border border-yellow-500/20 hover:border-yellow-500/40 transition"
+              className="
+                rounded-xl p-5
+                bg-gradient-to-br from-black to-zinc-900
+                border border-yellow-500/20
+                hover:border-yellow-500/40
+                transition
+              "
             >
               <div className="flex justify-between items-start mb-2">
                 <h2 className="font-medium text-lg text-white">
@@ -179,10 +136,10 @@ export default async function AnnouncementsPage() {
               <p className="text-gray-300 leading-relaxed">
                 {a.body}
               </p>
-            </li>
-          ))}
-        </ul>
-      )}
+            </div>
+          ))
+        )}
+      </div>
     </main>
   )
 }
