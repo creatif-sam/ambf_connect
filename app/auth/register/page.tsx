@@ -1,11 +1,14 @@
 "use client"
 
+export const dynamic = "force-dynamic"
+
 import { useState } from "react"
-import { signUp } from "@/lib/supabase/auth"
 import { useRouter } from "next/navigation"
+import { signUp } from "@/lib/supabase/auth"
 
 export default function RegisterPage() {
   const router = useRouter()
+
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -28,37 +31,46 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="p-4 max-w-md mx-auto">
-      <h1 className="text-xl font-semibold mb-4">Create account</h1>
+    <div className="min-h-screen flex items-center justify-center bg-white px-6">
+      <div className="max-w-md w-full space-y-6">
+        <h1 className="text-3xl font-semibold">
+          Create account
+        </h1>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <input
-          type="email"
-          placeholder="Email"
-          required
-          className="w-full border p-2 rounded"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-        />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <input
+            type="email"
+            placeholder="Email address"
+            required
+            className="w-full border rounded-lg px-4 py-3"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+          />
 
-        <input
-          type="password"
-          placeholder="Password"
-          required
-          className="w-full border p-2 rounded"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-        />
+          <input
+            type="password"
+            placeholder="Password"
+            required
+            className="w-full border rounded-lg px-4 py-3"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+          />
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && (
+            <p className="text-sm text-red-600">
+              {error}
+            </p>
+          )}
 
-        <button
-          disabled={loading}
-          className="w-full bg-black text-white py-2 rounded"
-        >
-          {loading ? "Creating account..." : "Sign up"}
-        </button>
-      </form>
-    </main>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-black text-white py-3 rounded-lg disabled:opacity-60"
+          >
+            {loading ? "Creating account..." : "Sign up"}
+          </button>
+        </form>
+      </div>
+    </div>
   )
 }
