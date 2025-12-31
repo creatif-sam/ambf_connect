@@ -1,23 +1,36 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
-export async function getNetworkingMap(eventId: string, userId: string) {
+export type NetworkingRow = {
+  other_profile_id: string
+  status: "pending" | "accepted" | "rejected"
+  direction: "incoming" | "outgoing"
+}
+
+export async function getNetworkingMap(
+  eventId: string,
+  userId: string
+): Promise<NetworkingRow[]> {
   const supabase = await createSupabaseServerClient()
 
   const { data, error } = await supabase
     .from("networking_requests")
-    .select("receiver_id, status")
+    .select("sender_id, receiver_id, status")
     .eq("event_id", eventId)
-    .eq("sender_id", userId)
+    .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
 
   if (error) {
     throw error
   }
 
-  const map: Record<string, string> = {}
+  return (data ?? []).map(row => {
+    const isSender = row.sender_id === userId
 
-  data.forEach(r => {
-    map[r.receiver_id] = r.status
+    return {
+      other_profile_id: isSender
+        ? row.receiver_id
+        : row.sender_id,
+      status: row.status,
+      direction: isSender ? "outgoing" : "incoming"
+    }
   })
-
-  return map
 }

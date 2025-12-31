@@ -1,66 +1,72 @@
-export default function PrivacyPolicyPage() {
+import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { revalidatePath } from "next/cache"
+import { redirect } from "next/navigation"
+import AvatarUpload from "./AvatarUpload"
+
+export default async function ProfilePage() {
+  const supabase = await createSupabaseServerClient()
+
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+
+  if (!user) {
+    return <p>Not logged in</p>
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, job_title, company, avatar_url")
+    .eq("id", user.id)
+    .single()
+
+  async function updateProfile(formData: FormData) {
+    "use server"
+
+    const supabase = await createSupabaseServerClient()
+
+    await supabase
+      .from("profiles")
+      .update({
+        full_name: formData.get("full_name"),
+        job_title: formData.get("job_title"),
+        company: formData.get("company")
+      })
+      .eq("id", user.id)
+
+    revalidatePath("/profile")
+  }
+
+  async function logout() {
+    "use server"
+    const supabase = await createSupabaseServerClient()
+    await supabase.auth.signOut()
+    redirect("/auth/login")
+  }
+
   return (
-    <main className="max-w-3xl mx-auto px-4 py-10 space-y-6">
-      <h1 className="text-3xl font-bold">Privacy Policy</h1>
-      <p className="text-sm text-gray-500">
-        Last updated: 30 December 2025
-      </p>
+    <main className="max-w-xl mx-auto p-8 space-y-8">
+      <h1 className="text-2xl font-semibold">Profile</h1>
 
-      <section className="space-y-4">
-        <p>
-          AMBF Connect respects your privacy and is committed to protecting your
-          personal data. This Privacy Policy explains how we collect, use,
-          store, and protect your information when you use our platform.
-        </p>
+      <section className="border rounded p-4">
+        <p className="font-medium">{profile?.full_name}</p>
+        <p className="text-sm">{user.email}</p>
 
-        <p>
-          By using AMBF Connect, you agree to the practices described in this
-          policy.
-        </p>
+        <AvatarUpload />
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold">Information We Collect</h2>
-        <ul className="list-disc pl-6 space-y-1">
-          <li>Email address and encrypted password</li>
-          <li>Profile information such as name and role</li>
-          <li>Event participation data</li>
-          <li>Session and authentication data</li>
-        </ul>
+      <section className="border rounded p-4">
+        <form action={updateProfile} className="space-y-3">
+          <input name="full_name" defaultValue={profile?.full_name ?? ""} />
+          <input name="job_title" defaultValue={profile?.job_title ?? ""} />
+          <input name="company" defaultValue={profile?.company ?? ""} />
+          <button type="submit">Save</button>
+        </form>
       </section>
 
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold">How We Use Your Information</h2>
-        <ul className="list-disc pl-6 space-y-1">
-          <li>Account creation and authentication</li>
-          <li>Event participation and management</li>
-          <li>Platform security and performance</li>
-          <li>Essential service communications</li>
-        </ul>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold">Data Security</h2>
-        <p>
-          Your data is stored securely using Supabase infrastructure with
-          encryption, access control, and row level security policies.
-        </p>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold">Your Rights</h2>
-        <p>
-          You may access, update, or request deletion of your data at any time.
-        </p>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-xl font-semibold">Contact</h2>
-        <p>
-          For privacy related questions, contact us at:
-        </p>
-        <p className="font-medium">it-support@africamedforum.com</p>
-      </section>
+      <form action={logout}>
+        <button type="submit">Log out</button>
+      </form>
     </main>
   )
 }

@@ -17,31 +17,80 @@ export default async function ProfilePage() {
     )
   }
 
-  // Fetch profile
+  /* Fetch profile */
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, created_at")
+    .select("full_name, job_title, company, avatar_url, created_at")
     .eq("id", user.id)
     .single()
 
-  // Update profile action
+  /* Profile completeness */
+  const profileFields = [
+    profile?.full_name,
+    profile?.job_title,
+    profile?.company,
+    profile?.avatar_url
+  ]
+
+  const completionPercent = Math.round(
+    (profileFields.filter(Boolean).length / profileFields.length) * 100
+  )
+
+  /* Update profile */
   async function updateProfile(formData: FormData) {
     "use server"
 
     const supabase = await createSupabaseServerClient()
-    const fullName = formData.get("full_name") as string
-
-    if (!fullName) return
 
     await supabase
       .from("profiles")
-      .update({ full_name: fullName })
+      .update({
+        full_name: formData.get("full_name"),
+        job_title: formData.get("job_title"),
+        company: formData.get("company")
+      })
       .eq("id", user.id)
 
     revalidatePath("/profile")
   }
 
-  // Logout action
+  /* Upload avatar */
+  async function uploadAvatar(formData: FormData) {
+    "use server"
+
+    const supabase = await createSupabaseServerClient()
+
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+
+    if (!user) return
+
+    const file = formData.get("avatar") as File
+    if (!file || file.size === 0) return
+
+    const fileExt = file.name.split(".").pop()
+    const filePath = `${user.id}/avatar.${fileExt}`
+
+    await supabase.storage
+      .from("avatars")
+      .upload(filePath, file, { upsert: true })
+
+    const { data } = supabase.storage
+      .from("avatars")
+      .getPublicUrl(filePath)
+
+    await supabase
+      .from("profiles")
+      .update({
+        avatar_url: data.publicUrl
+      })
+      .eq("id", user.id)
+
+    revalidatePath("/profile")
+  }
+
+  /* Logout */
   async function logout() {
     "use server"
 
@@ -52,33 +101,98 @@ export default async function ProfilePage() {
   }
 
   return (
-    <main className="max-w-xl mx-auto p-8 space-y-8">
+    <main className="max-w-xl mx-auto p-8 space-y-10">
       <h1 className="text-2xl font-semibold">
         Profile
       </h1>
 
-      {/* Email */}
-      <section className="border rounded-lg p-4 bg-white">
-        <p className="text-sm text-gray-500">
-          Email
-        </p>
-        <p className="font-medium">
-          {user.email}
-        </p>
+      {/* Identity and avatar */}
+      <section className="border rounded-lg p-6 bg-white space-y-4">
+        <div className="flex items-center gap-4">
+          <div className="h-16 w-16 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-gray-500">
+            {profile?.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <span className="text-lg font-medium">
+                {profile?.full_name?.charAt(0) ?? "?"}
+              </span>
+            )}
+          </div>
+
+          <div>
+            <p className="font-medium">
+              {profile?.full_name || "Unnamed user"}
+            </p>
+            <p className="text-sm text-gray-500">
+              {user.email}
+            </p>
+          </div>
+        </div>
+
+        <form action={uploadAvatar}>
+          <input
+            type="file"
+            name="avatar"
+            accept="image/*"
+            className="block text-sm"
+          />
+          <button
+            type="submit"
+            className="mt-2 px-3 py-1 border rounded text-sm"
+          >
+            Upload photo
+          </button>
+        </form>
       </section>
 
-      {/* Full name */}
-      <section className="border rounded-lg p-4 bg-white">
-        <p className="text-sm text-gray-500 mb-1">
-          Full name
-        </p>
+      {/* Profile completeness */}
+      <section className="border rounded-lg p-6 bg-white space-y-3">
+        <div className="flex justify-between">
+          <p className="font-medium">
+            Profile completeness
+          </p>
+          <p className="text-sm text-gray-600">
+            {completionPercent}%
+          </p>
+        </div>
 
-        <form action={updateProfile} className="space-y-3">
+        <div className="w-full h-2 bg-gray-200 rounded overflow-hidden">
+          <div
+            className="h-full bg-black"
+            style={{ width: `${completionPercent}%` }}
+          />
+        </div>
+      </section>
+
+      {/* Editable profile */}
+      <section className="border rounded-lg p-6 bg-white">
+        <h2 className="font-medium mb-4">
+          Professional information
+        </h2>
+
+        <form action={updateProfile} className="space-y-4">
           <input
-            type="text"
             name="full_name"
             defaultValue={profile?.full_name ?? ""}
-            placeholder="Enter your full name"
+            placeholder="Full name"
+            className="w-full border rounded px-3 py-2"
+          />
+
+          <input
+            name="job_title"
+            defaultValue={profile?.job_title ?? ""}
+            placeholder="Job title"
+            className="w-full border rounded px-3 py-2"
+          />
+
+          <input
+            name="company"
+            defaultValue={profile?.company ?? ""}
+            placeholder="Company"
             className="w-full border rounded px-3 py-2"
           />
 
@@ -86,18 +200,10 @@ export default async function ProfilePage() {
             type="submit"
             className="px-4 py-2 bg-black text-white rounded"
           >
-            Save
+            Save changes
           </button>
         </form>
       </section>
-
-      {/* Account info */}
-      {profile?.created_at && (
-        <p className="text-xs text-gray-400">
-          Account created on{" "}
-          {new Date(profile.created_at).toLocaleDateString()}
-        </p>
-      )}
 
       {/* Logout */}
       <form action={logout}>

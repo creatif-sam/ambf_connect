@@ -1,42 +1,48 @@
 import { notFound } from "next/navigation"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
-import { getNetworkingForEvent } from "@/lib/queries/networking"
-
 type PageProps = {
-  params: Promise<{
+  params: {
     slug: string
-  }>
+  }
 }
 
 type Profile = {
   id: string
   full_name: string | null
   avatar_url: string | null
-  title: string | null
-  organization: string | null
 }
 
 type EventMemberRow = {
   id: string
-  role: "organizer" | "attendee"
-  profiles: Profile | null
+  role: "organizer" | "speaker" | "attendee"
+  profiles: Profile[] | null
 }
 
 type Attendee = {
   id: string
-  role: "organizer" | "attendee"
+  role: "organizer" | "speaker" | "attendee"
   profile: Profile
 }
 
+type NetworkingRow = {
+  sender_id: string
+  receiver_id: string
+  status: "pending" | "accepted" | "rejected"
+}
+
 export default async function EventDetailPage({ params }: PageProps) {
-  const { slug } = await params
+  const { slug } = params
 
   const supabase = await createSupabaseServerClient()
 
+  const {
+    data: { user }
+  } = await supabase.auth.getUser()
+
   const { data: event, error: eventError } = await supabase
     .from("events")
-    .select("id, title, description, starts_at, ends_at")
+    .select("id, title, description")
     .eq("slug", slug)
     .single()
 
@@ -53,9 +59,7 @@ export default async function EventDetailPage({ params }: PageProps) {
         profiles (
           id,
           full_name,
-          avatar_url,
-          title,
-          organization
+          avatar_url
         )
       `
     )
@@ -65,30 +69,39 @@ export default async function EventDetailPage({ params }: PageProps) {
     throw membersError
   }
 
-  const attendees: Attendee[] = (members ?? [])
-    .filter((m): m is EventMemberRow & { profiles: Profile } => {
-      return m.profiles !== null
-    })
+  const attendees: Attendee[] = (members as EventMemberRow[] ?? [])
+    .filter(m => m.profiles && m.profiles.length > 0)
     .map(m => ({
       id: m.id,
       role: m.role,
-      profile: m.profiles
+      profile: m.profiles![0]
     }))
 
-  const networkingRows = await getNetworkingForEvent(event.id)
-
-  const networkingMap = new Map<
+  let networkingMap = new Map<
     string,
     {
-      status: "pending" | "accepted" | "declined"
+      status: "pending" | "accepted" | "rejected"
       direction: "incoming" | "outgoing"
     }
   >()
 
-  for (const n of networkingRows) {
-    networkingMap.set(n.other_profile_id, {
-      status: n.status,
-      direction: n.direction
+  if (user) {
+    const { data: networkingRows } = await supabase
+      .from("networking_requests")
+      .select("sender_id, receiver_id, status")
+      .eq("event_id", event.id)
+      .or(
+        `sender_id.eq.${user.id},receiver_id.eq.${user.id}`
+      )
+
+    ;(networkingRows as NetworkingRow[] ?? []).forEach(n => {
+      const isOutgoing = n.sender_id === user.id
+      const otherUserId = isOutgoing ? n.receiver_id : n.sender_id
+
+      networkingMap.set(otherUserId, {
+        status: n.status,
+        direction: isOutgoing ? "outgoing" : "incoming"
+      })
     })
   }
 
@@ -130,15 +143,6 @@ export default async function EventDetailPage({ params }: PageProps) {
                     <p className="font-medium">
                       {attendee.profile.full_name ?? "Unnamed user"}
                     </p>
-
-                    {(attendee.profile.title ||
-                      attendee.profile.organization) && (
-                      <p className="text-sm text-gray-500">
-                        {[attendee.profile.title, attendee.profile.organization]
-                          .filter(Boolean)
-                          .join(" at ")}
-                      </p>
-                    )}
                   </div>
                 </div>
 

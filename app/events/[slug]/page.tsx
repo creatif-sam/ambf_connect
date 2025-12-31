@@ -1,13 +1,32 @@
+import { notFound } from "next/navigation"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { revalidatePath } from "next/cache"
 import { getNetworkingMap } from "@/lib/queries/networking"
 
 type PageProps = {
   params: Promise<{ slug: string }>
 }
 
+type Profile = {
+  id: string
+  full_name: string | null
+  avatar_url: string | null
+  title: string | null
+  organization: string | null
+}
+
+type EventMemberRow = {
+  id: string
+  role: "organizer" | "attendee" | "speaker"
+  profiles: Profile | null
+}
+
+type Attendee = {
+  id: string
+  role: EventMemberRow["role"]
+  profile: Profile
+}
+
 export default async function EventDetailPage({ params }: PageProps) {
-  // Next.js 16 params
   const { slug } = await params
 
   const supabase = await createSupabaseServerClient()
@@ -17,179 +36,127 @@ export default async function EventDetailPage({ params }: PageProps) {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    return (
-      <main className="max-w-xl mx-auto p-8">
-        <p>You must be logged in to view this event.</p>
-      </main>
-    )
+    notFound()
   }
 
-  const { data: event, error: eventError } = await supabase
+  const { data: event } = await supabase
     .from("events")
-    .select("id, title, description, start_date, end_date")
+    .select("id, title, description")
     .eq("slug", slug)
     .single()
 
-  if (eventError || !event) {
-    return (
-      <main className="max-w-xl mx-auto p-8">
-        <p>Event not found.</p>
-      </main>
-    )
+  if (!event) {
+    notFound()
   }
 
-  const { data: membership } = await supabase
+  const { data: members } = await supabase
     .from("event_members")
-    .select("role")
-    .eq("event_id", event.id)
-    .eq("user_id", user.id)
-    .maybeSingle()
-
-  const { data: attendees } = await supabase
-    .from("event_members")
-    .select(`
-      role,
-      profiles (
+    .select(
+      `
         id,
-        full_name
-      )
-    `)
+        role,
+        profiles (
+          id,
+          full_name,
+          avatar_url,
+          title,
+          organization
+        )
+      `
+    )
     .eq("event_id", event.id)
+    .returns<EventMemberRow[]>()
 
-  // 🔹 NEW: networking state map
-  const networkingMap = await getNetworkingMap(event.id, user.id)
+  const attendees: Attendee[] = (members ?? [])
+    .filter(m => m.profiles !== null)
+    .map(m => ({
+      id: m.id,
+      role: m.role,
+      profile: m.profiles as Profile
+    }))
 
-  async function joinEvent() {
-    "use server"
+  const networkingRows = await getNetworkingMap(event.id, user.id)
 
-    const supabase = await createSupabaseServerClient()
-    const {
-      data: { user }
-    } = await supabase.auth.getUser()
+  const networkingMap = new Map<
+    string,
+    {
+      status: "pending" | "accepted" | "rejected"
+      direction: "incoming" | "outgoing"
+    }
+  >()
 
-    if (!user) return
-
-    await supabase.from("event_members").insert({
-      event_id: event.id,
-      user_id: user.id,
-      role: "attendee"
+  for (const row of networkingRows) {
+    networkingMap.set(row.other_profile_id, {
+      status: row.status,
+      direction: row.direction
     })
-
-    revalidatePath(`/events/${slug}`)
-  }
-
-  async function connect(receiverId: string) {
-    "use server"
-
-    const supabase = await createSupabaseServerClient()
-    const {
-      data: { user }
-    } = await supabase.auth.getUser()
-
-    if (!user) return
-
-    await supabase.from("networking_requests").insert({
-      event_id: event.id,
-      sender_id: user.id,
-      receiver_id: receiverId,
-      status: "pending"
-    })
-
-    revalidatePath(`/events/${slug}`)
   }
 
   return (
-    <main className="max-w-3xl mx-auto p-8 space-y-8">
-      {/* Event header */}
-      <section>
+    <main className="max-w-5xl mx-auto px-6 py-10">
+      <header className="mb-10">
         <h1 className="text-3xl font-bold">{event.title}</h1>
-        <p className="text-gray-600 mt-1">
-          {event.start_date} to {event.end_date}
-        </p>
         {event.description && (
-          <p className="mt-4">{event.description}</p>
+          <p className="mt-2 text-gray-600">{event.description}</p>
         )}
-      </section>
+      </header>
 
-      {/* Join status */}
-      {!membership && (
-        <form action={joinEvent}>
-          <button className="px-6 py-3 rounded bg-black text-white">
-            Join event
-          </button>
-        </form>
-      )}
-
-      {membership && (
-        <p className="text-green-700">
-          You are registered as {membership.role}
-        </p>
-      )}
-
-      <hr />
-
-      {/* Attendee directory + networking */}
       <section>
-        <h2 className="text-xl font-semibold mb-4">Attendees</h2>
+        <h2 className="text-xl font-semibold mb-4">
+          Attendees {attendees.length}
+        </h2>
 
-        {!attendees || attendees.length === 0 ? (
-          <p className="text-gray-500">No attendees yet.</p>
-        ) : (
-          <ul className="space-y-3">
-            {attendees.map((a, idx) => {
-              const profile = a.profiles
-              if (!profile) return null
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {attendees.map(attendee => {
+            const networking = networkingMap.get(attendee.profile.id)
 
-              const isMe = profile.id === user.id
-              const status = networkingMap[profile.id]
-
-              return (
-                <li
-                  key={idx}
-                  className="border rounded p-4 flex justify-between items-center"
-                >
-                  <div>
-                    <p className="font-medium">
-                      {profile.full_name || "Unnamed user"}
-                    </p>
-                    <p className="text-sm text-gray-500">
-                      {a.role}
-                    </p>
+            return (
+              <li
+                key={attendee.id}
+                className="border rounded-lg p-4 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-gray-200 overflow-hidden">
+                    {attendee.profile.avatar_url && (
+                      <img
+                        src={attendee.profile.avatar_url}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    )}
                   </div>
 
-                  {!isMe && (
-                    <>
-                      {status === "pending" && (
-                        <span className="text-sm text-gray-400">
-                          Pending
-                        </span>
-                      )}
+                  <div>
+                    <p className="font-medium">
+                      {attendee.profile.full_name ?? "Unnamed user"}
+                    </p>
 
-                      {status === "accepted" && (
-                        <span className="text-sm text-green-600">
-                          Connected
-                        </span>
-                      )}
+                    {(attendee.profile.title ||
+                      attendee.profile.organization) && (
+                      <p className="text-sm text-gray-500">
+                        {[attendee.profile.title, attendee.profile.organization]
+                          .filter(Boolean)
+                          .join(" at ")}
+                      </p>
+                    )}
+                  </div>
+                </div>
 
-                      {!status && (
-                        <form
-                          action={async () => {
-                            "use server"
-                            await connect(profile.id)
-                          }}
-                        >
-                          <button className="px-3 py-1 border rounded text-sm">
-                            Connect
-                          </button>
-                        </form>
-                      )}
-                    </>
+                <div>
+                  {networking ? (
+                    <span className="text-sm text-gray-600">
+                      {networking.status}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-gray-400">
+                      Not connected
+                    </span>
                   )}
-                </li>
-              )
-            })}
-          </ul>
-        )}
+                </div>
+              </li>
+            )
+          })}
+        </ul>
       </section>
     </main>
   )
