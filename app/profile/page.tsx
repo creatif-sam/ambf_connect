@@ -16,33 +16,28 @@ export default async function ProfilePage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, job_title, company, avatar_url, created_at")
+    .select("full_name, job_title, company, avatar_url")
     .eq("id", user.id)
     .single()
 
-  const profileFields = [
-    profile?.full_name,
-    profile?.job_title,
-    profile?.company,
-    profile?.avatar_url
-  ]
+  const { count: pendingConnections } = await supabase
+    .from("networking_requests")
+    .select("*", { count: "exact", head: true })
+    .eq("receiver_id", user.id)
+    .eq("status", "pending")
 
-  const completionPercent = Math.round(
-    (profileFields.filter(Boolean).length / profileFields.length) * 100
-  )
+  const { count: totalConnections } = await supabase
+    .from("networking_requests")
+    .select("*", { count: "exact", head: true })
+    .or(
+      `sender_id.eq.${user.id},receiver_id.eq.${user.id}`
+    )
+    .eq("status", "accepted")
 
   async function updateProfile(formData: FormData) {
     "use server"
 
     const supabase = await createSupabaseServerClient()
-
-    const {
-      data: { user }
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      throw new Error("Not authenticated")
-    }
 
     await supabase
       .from("profiles")
@@ -58,72 +53,98 @@ export default async function ProfilePage() {
 
   async function logout() {
     "use server"
-
     const supabase = await createSupabaseServerClient()
     await supabase.auth.signOut()
-
     redirect("/auth/login")
   }
 
   return (
-    <main className="max-w-2xl mx-auto px-6 py-10 space-y-10">
-      <header className="space-y-1">
-        <h1 className="text-3xl font-semibold">
-          Profile
-        </h1>
-        <p className="text-sm text-gray-500">
-          Manage your personal information and profile photo
-        </p>
-      </header>
+    <main className="max-w-md mx-auto px-4 py-8 space-y-8">
 
-      <section className="rounded-xl border bg-white p-6 space-y-4">
-        <div className="flex items-center gap-5">
-          <div className="h-20 w-20 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-gray-500">
-            {profile?.avatar_url ? (
-              <img
-                src={profile.avatar_url}
-                alt=""
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <span className="text-xl font-semibold">
-                {profile?.full_name?.charAt(0) ?? "?"}
-              </span>
-            )}
-          </div>
-
-          <div className="flex-1">
-            <p className="text-lg font-medium">
-              {profile?.full_name || "Unnamed user"}
-            </p>
-            <p className="text-sm text-gray-500">
-              {user.email}
-            </p>
-          </div>
+      {/* Profile header */}
+      <section className="flex flex-col items-center text-center space-y-4">
+        <div className="h-28 w-28 rounded-full bg-gray-200 overflow-hidden">
+          {profile?.avatar_url ? (
+            <img
+              src={profile.avatar_url}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <div className="h-full w-full flex items-center justify-center text-3xl font-semibold text-gray-500">
+              {profile?.full_name?.charAt(0) ?? "?"}
+            </div>
+          )}
         </div>
 
+        <div>
+          <p className="text-xl font-semibold">
+            {profile?.full_name || "Unnamed user"}
+          </p>
+          <p className="text-sm text-gray-500">
+            {profile?.job_title || "No job title"}
+          </p>
+          <p className="text-sm text-gray-500">
+            {profile?.company || user.email}
+          </p>
+        </div>
+      </section>
+
+      {/* Stats row */}
+      <section className="flex justify-around text-center border rounded-xl py-4 bg-white">
+        <div>
+          <p className="text-lg font-semibold">
+            {totalConnections ?? 0}
+          </p>
+          <p className="text-xs text-gray-500">
+            Connections
+          </p>
+        </div>
+
+        <div>
+          <p className="text-lg font-semibold">
+            {pendingConnections ?? 0}
+          </p>
+          <p className="text-xs text-gray-500">
+            Pending
+          </p>
+        </div>
+
+        <div>
+          <p className="text-lg font-semibold">
+            0
+          </p>
+          <p className="text-xs text-gray-500">
+            Events
+          </p>
+        </div>
+      </section>
+
+      {/* Action buttons */}
+      <section className="flex gap-3">
+        <button
+          className="flex-1 py-2 rounded-lg border font-medium"
+        >
+          Edit profile
+        </button>
+
+        <form action={logout} className="flex-1">
+          <button
+            type="submit"
+            className="w-full py-2 rounded-lg border border-red-500 text-red-600 font-medium"
+          >
+            Log out
+          </button>
+        </form>
+      </section>
+
+      {/* Avatar upload */}
+      <section className="border rounded-xl p-4 bg-white">
         <AvatarUpload />
       </section>
 
-      <section className="rounded-xl border bg-white p-6 space-y-3">
-        <div className="flex justify-between items-center">
-          <p className="font-medium">
-            Profile completeness
-          </p>
-          <span className="text-sm text-gray-600">
-            {completionPercent}%
-          </span>
-        </div>
-
-        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-black transition-all"
-            style={{ width: `${completionPercent}%` }}
-          />
-        </div>
-      </section>
-
-      <section className="rounded-xl border bg-white p-6">
+      {/* Edit form */}
+      <section className="border rounded-xl p-6 bg-white">
         <form action={updateProfile} className="space-y-4">
           <div>
             <label className="text-sm font-medium">
@@ -160,21 +181,13 @@ export default async function ProfilePage() {
 
           <button
             type="submit"
-            className="inline-flex items-center px-4 py-2 rounded-md bg-black text-white text-sm font-medium"
+            className="w-full py-3 rounded-lg bg-black text-white font-medium"
           >
             Save changes
           </button>
         </form>
       </section>
 
-      <form action={logout}>
-        <button
-          type="submit"
-          className="w-full px-4 py-3 rounded-xl border border-red-500 text-red-600 text-sm font-medium"
-        >
-          Log out
-        </button>
-      </form>
     </main>
   )
 }

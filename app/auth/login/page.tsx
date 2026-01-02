@@ -2,17 +2,37 @@
 
 export const dynamic = "force-dynamic"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { signIn } from "@/lib/supabase/auth"
+import { createSupabaseBrowserClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 
 export default function LoginPage() {
   const router = useRouter()
+  const supabase = createSupabaseBrowserClient()
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
+  const [checkingSession, setCheckingSession] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function checkSession() {
+      const {
+        data: { user }
+      } = await supabase.auth.getUser()
+
+      if (user) {
+        router.replace("/profile")
+        return
+      }
+
+      setCheckingSession(false)
+    }
+
+    checkSession()
+  }, [router, supabase])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -27,7 +47,17 @@ export default function LoginPage() {
       return
     }
 
-    router.push("/events")
+    router.replace("/profile")
+  }
+
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-sm text-gray-500">
+          Checking session...
+        </p>
+      </div>
+    )
   }
 
   return (
@@ -40,7 +70,7 @@ export default function LoginPage() {
 
         <p className="text-lg text-gray-300 text-center max-w-sm">
           A secure platform for events, announcements, and professional
-          networking..
+          networking.
         </p>
       </div>
 
