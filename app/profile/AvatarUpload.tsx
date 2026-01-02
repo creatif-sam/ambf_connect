@@ -4,7 +4,13 @@ import { useRef, useState, useTransition } from "react"
 import { createSupabaseBrowserClient } from "@/lib/supabase/client"
 import { updateAvatarUrl } from "./actions"
 
-export default function AvatarUpload() {
+type AvatarUploadProps = {
+  onSuccess?: () => void
+}
+
+export default function AvatarUpload({
+  onSuccess
+}: AvatarUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [pending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -47,6 +53,12 @@ export default function AvatarUpload() {
 
       startTransition(() => {
         updateAvatarUrl(publicUrl)
+          .then(() => {
+            onSuccess?.()
+          })
+          .catch(err => {
+            setError(err.message ?? "Profile update failed")
+          })
       })
     } catch (err: any) {
       setError(err.message ?? "Upload failed")
@@ -67,13 +79,13 @@ export default function AvatarUpload() {
         type="button"
         onClick={() => fileInputRef.current?.click()}
         disabled={pending}
-        className="px-3 py-1.5 border rounded-md text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+        className="w-full px-4 py-2 rounded-lg border text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
       >
-        {pending ? "Uploading..." : "Change photo"}
+        {pending ? "Uploading..." : "Change profile photo"}
       </button>
 
       {error && (
-        <p className="text-xs text-red-600">
+        <p className="text-xs text-red-600 text-center">
           {error}
         </p>
       )}
