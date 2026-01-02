@@ -4,117 +4,43 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { createSupabaseBrowserClient } from "@/lib/supabase/client"
 
-type Conversation = {
-  otherUser: any
-  lastMessage: any
-}
-
 type Props = {
-  userId: string
-  conversations: Conversation[]
+  meId: string
+  initialConversations: any[]
 }
 
 /* deterministic date */
 function formatDate(date: string) {
   const d = new Date(date)
-  return `${d.getUTCDate()}/${d.getUTCMonth() + 1}/${d.getUTCFullYear()}`
+  return d.toLocaleDateString("en-GB")
 }
 
 export default function MessagesClient({
-  userId,
-  conversations: initial
+  meId,
+  initialConversations
 }: Props) {
   const supabase = createSupabaseBrowserClient()
-  const [conversations, setConversations] =
-    useState<Conversation[]>(initial)
+  const [conversations, setConversations] = useState(
+    initialConversations
+  )
 
-  /* fetch profile ONCE for new conversations */
-  async function fetchProfile(userId: string) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, full_name, avatar_url")
-      .eq("id", userId)
-      .single()
-
-    return data
-  }
-
-  /* REALTIME INBOX UPDATES */
+  /* =========================
+     REALTIME INBOX UPDATES
+     ========================= */
   useEffect(() => {
     const channel = supabase
       .channel("inbox-realtime")
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "messages"
         },
-        async payload => {
-          const m = payload.new
-
-          /* ignore messages not involving me */
-          if (
-            m.sender_id !== userId &&
-            m.receiver_id !== userId
-          ) {
-            return
-          }
-
-          const otherId =
-            m.sender_id === userId
-              ? m.receiver_id
-              : m.sender_id
-
-          setConversations(prev => {
-            const existing = prev.find(
-              c => c.otherUser.id === otherId
-            )
-
-            const rest = prev.filter(
-              c => c.otherUser.id !== otherId
-            )
-
-            /* EXISTING CONVERSATION */
-            if (existing) {
-              return [
-                {
-                  ...existing,
-                  lastMessage: m
-                },
-                ...rest
-              ]
-            }
-
-            /* PLACEHOLDER WHILE FETCHING PROFILE */
-            return [
-              {
-                otherUser: {
-                  id: otherId,
-                  full_name: "Loading...",
-                  avatar_url: null
-                },
-                lastMessage: m
-              },
-              ...rest
-            ]
-          })
-
-          /* fetch real profile and replace placeholder */
-          const profile = await fetchProfile(otherId)
-
-          if (!profile) return
-
-          setConversations(prev =>
-            prev.map(c =>
-              c.otherUser.id === otherId
-                ? {
-                    ...c,
-                    otherUser: profile
-                  }
-                : c
-            )
-          )
+        () => {
+          fetch("/api/messages/inbox")
+            .then(r => r.json())
+            .then(data => setConversations(data))
         }
       )
       .subscribe()
@@ -122,58 +48,83 @@ export default function MessagesClient({
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [supabase, userId])
+  }, [supabase])
 
   return (
-    <main className="max-w-md mx-auto h-screen flex flex-col bg-white">
+    <main className="max-w-md mx-auto bg-white min-h-screen">
 
       {/* HEADER */}
-      <header className="px-4 py-4 border-b bg-black">
-        <h1 className="text-lg font-semibold text-yellow-400 text-center">
-          Messages
-        </h1>
+      <header className="px-4 py-3 bg-black text-yellow-400 text-center font-semibold">
+        Messages
       </header>
 
-      {/* CONVERSATION LIST */}
-      <div className="flex-1 overflow-y-auto divide-y">
+      {/* INBOX */}
+      <div className="divide-y">
         {conversations.length === 0 && (
-          <p className="text-sm text-gray-500 text-center mt-10">
+          <p className="p-6 text-sm text-gray-500 text-center">
             No conversations yet
           </p>
         )}
 
         {conversations.map(c => (
           <Link
-            key={c.otherUser.id}
-            href={`/messages/${c.otherUser.id}`}
-            className="flex items-center gap-3 px-4 py-3 hover:bg-yellow-50 transition"
+            key={c.other_user_id}
+            href={`/messages/${c.other_user_id}`}
+            className="block hover:bg-gray-50 transition"
           >
-            {/* Avatar */}
-            <div className="h-12 w-12 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
-              {c.otherUser.avatar_url && (
-                <img
-                  src={c.otherUser.avatar_url}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
-              )}
-            </div>
+            <div className="flex items-center gap-3 px-4 py-3">
 
-            {/* Text */}
-            <div className="flex-1 min-w-0">
-              <div className="flex justify-between items-center">
-                <p className="font-medium text-sm truncate">
-                  {c.otherUser.full_name}
-                </p>
-
-                <span className="text-[10px] text-gray-400">
-                  {formatDate(c.lastMessage.created_at)}
-                </span>
+              {/* AVATAR */}
+              <div className="h-12 w-12 rounded-full bg-gray-200 overflow-hidden">
+                {c.avatar_url && (
+                  <img
+                    src={c.avatar_url}
+                    alt=""
+                    className="h-full w-full object-cover"
+                  />
+                )}
               </div>
 
-              <p className="text-xs text-gray-500 truncate mt-0.5">
-                {c.lastMessage.content}
-              </p>
+              {/* CONTENT */}
+              <div className="flex-1 min-w-0">
+                <p className="font-medium truncate">
+                  {c.full_name}
+                </p>
+
+                <p
+                  className={`text-sm truncate ${
+                    c.unread_count > 0
+                      ? "font-semibold text-black"
+                      : "text-gray-500"
+                  }`}
+                >
+                  {c.last_message}
+                </p>
+              </div>
+
+              {/* META */}
+              <div className="flex flex-col items-end gap-1">
+                <span className="text-xs text-gray-400">
+                  {formatDate(c.last_message_at)}
+                </span>
+
+                {c.unread_count > 0 && (
+                  <span
+                    className="
+                      min-w-[18px] h-[18px]
+                      rounded-full
+                      bg-gradient-to-r from-yellow-400 to-black
+                      text-white
+                      text-[10px]
+                      flex items-center justify-center
+                      font-semibold
+                    "
+                  >
+                    {c.unread_count}
+                  </span>
+                )}
+              </div>
+
             </div>
           </Link>
         ))}

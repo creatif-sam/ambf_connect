@@ -1,11 +1,20 @@
 import { redirect } from "next/navigation"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import { getConversation } from "@/lib/queries/messages.server"
+import {
+  getConversation,
+  markConversationAsRead
+} from "@/lib/queries/messages.server"
 import ConversationClient from "./ConversationClient"
 
 export const dynamic = "force-dynamic"
 
-export default async function ConversationPage({ params }) {
+type Props = {
+  params: Promise<{ userId: string }>
+}
+
+export default async function ConversationPage({
+  params
+}: Props) {
   const { userId } = await params
   const supabase = await createSupabaseServerClient()
 
@@ -13,7 +22,12 @@ export default async function ConversationPage({ params }) {
     data: { user }
   } = await supabase.auth.getUser()
 
-  if (!user) redirect("/auth/login")
+  if (!user) {
+    redirect("/auth/login")
+  }
+
+  /* 🔴 RESET UNREAD HERE */
+  await markConversationAsRead(user.id, userId)
 
   const { data: otherUser } = await supabase
     .from("profiles")
@@ -21,7 +35,10 @@ export default async function ConversationPage({ params }) {
     .eq("id", userId)
     .single()
 
-  const initialMessages = await getConversation(user.id, userId)
+  const initialMessages = await getConversation(
+    user.id,
+    userId
+  )
 
   return (
     <ConversationClient

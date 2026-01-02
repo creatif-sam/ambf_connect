@@ -24,24 +24,30 @@ export default function BottomNav() {
   const pathname = usePathname()
   const supabase = createSupabaseBrowserClient()
 
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false)
-  const [isOrganizer, setIsOrganizer] = useState<boolean>(false)
-  const [ready, setReady] = useState<boolean>(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isOrganizer, setIsOrganizer] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
+  const [ready, setReady] = useState(false)
+
+  async function fetchUnread() {
+    const res = await fetch("/api/messages/unread")
+    const data = await res.json()
+    setUnreadCount(data.count)
+  }
 
   useEffect(() => {
-    async function loadAuthAndRole() {
+    async function load() {
       const {
         data: { user }
       } = await supabase.auth.getUser()
 
       if (!user) {
-        setIsLoggedIn(false)
-        setIsOrganizer(false)
         setReady(true)
         return
       }
 
       setIsLoggedIn(true)
+      fetchUnread()
 
       const { data: memberships } = await supabase
         .from("event_members")
@@ -50,11 +56,29 @@ export default function BottomNav() {
         .eq("role", "organizer")
         .limit(1)
 
-      setIsOrganizer(!!memberships && memberships.length > 0)
+      setIsOrganizer(!!memberships?.length)
+
+      const channel = supabase
+        .channel("bottom-nav-unread")
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "messages"
+          },
+          fetchUnread
+        )
+        .subscribe()
+
       setReady(true)
+
+      return () => {
+        supabase.removeChannel(channel)
+      }
     }
 
-    loadAuthAndRole()
+    load()
   }, [supabase])
 
   if (!ready) return null
@@ -62,23 +86,14 @@ export default function BottomNav() {
   const navItems: NavItem[] = [
     { label: "Home", href: "/", icon: Home },
     { label: "Events", href: "/events", icon: Calendar },
-    { label: "Networking", href: "/networking", icon: Users }
-  ]
-
-  /* Messages only for logged in users */
-  if (isLoggedIn) {
-    navItems.push({
+    { label: "Networking", href: "/networking", icon: Users },
+    {
       label: "Messages",
       href: "/messages",
       icon: MessageCircle
-    })
-  }
-
-  navItems.push({
-    label: "Announcements",
-    href: "/announcements",
-    icon: Megaphone
-  })
+    },
+    { label: "Announcements", href: "/announcements", icon: Megaphone }
+  ]
 
   if (isOrganizer) {
     navItems.push({
@@ -105,16 +120,35 @@ export default function BottomNav() {
           const Icon = item.icon
 
           return (
-            <li key={item.label}>
+            <li key={item.label} className="relative">
               <Link
                 href={item.href}
-                className={`
-                  flex flex-col items-center text-[11px]
-                  transition-all
-                  ${isActive ? "text-yellow-400" : "text-gray-400"}
-                `}
+                className={`flex flex-col items-center text-[11px] ${
+                  isActive ? "text-yellow-400" : "text-gray-400"
+                }`}
               >
-                <Icon className="h-5 w-5 mb-1" />
+                <div className="relative">
+                  <Icon className="h-5 w-5 mb-1" />
+
+                  {item.label === "Messages" &&
+                    unreadCount > 0 && (
+                      <span
+                        className="
+                          absolute -top-1 -right-2
+                          min-w-[16px] h-[16px]
+                          rounded-full
+                          bg-gradient-to-r from-yellow-400 to-black
+                          text-white
+                          text-[9px]
+                          flex items-center justify-center
+                          font-semibold
+                        "
+                      >
+                        {unreadCount}
+                      </span>
+                    )}
+                </div>
+
                 {item.label}
               </Link>
             </li>
