@@ -3,10 +3,7 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
 
-export async function uploadAvatar(formData: FormData) {
-  const file = formData.get("avatar") as File | null
-  if (!file) return
-
+export async function updateAvatarUrl(avatarUrl: string) {
   const supabase = await createSupabaseServerClient()
 
   const {
@@ -17,27 +14,14 @@ export async function uploadAvatar(formData: FormData) {
     throw new Error("Not authenticated")
   }
 
-  const fileExt = file.name.split(".").pop()
-  const filePath = `${user.id}.${fileExt}`
-
-  const { error: uploadError } = await supabase.storage
-    .from("avatars")
-    .upload(filePath, file, {
-      upsert: true
-    })
-
-  if (uploadError) throw uploadError
-
-  const {
-    data: { publicUrl }
-  } = supabase.storage
-    .from("avatars")
-    .getPublicUrl(filePath)
-
-  await supabase
+  const { error } = await supabase
     .from("profiles")
-    .update({ avatar_url: publicUrl })
+    .update({ avatar_url: avatarUrl })
     .eq("id", user.id)
+
+  if (error) {
+    throw error
+  }
 
   revalidatePath("/profile")
 }

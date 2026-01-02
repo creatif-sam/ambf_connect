@@ -10,10 +10,9 @@ export default async function ProfilePage() {
     data: { user }
   } = await supabase.auth.getUser()
 
-if (!user) {
-  redirect("/auth/login")
-}
-
+  if (!user) {
+    redirect("/auth/login")
+  }
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -67,14 +66,19 @@ if (!user) {
   }
 
   return (
-    <main className="max-w-xl mx-auto p-8 space-y-10">
-      <h1 className="text-2xl font-semibold">
-        Profile
-      </h1>
+    <main className="max-w-2xl mx-auto px-6 py-10 space-y-10">
+      <header className="space-y-1">
+        <h1 className="text-3xl font-semibold">
+          Profile
+        </h1>
+        <p className="text-sm text-gray-500">
+          Manage your personal information and profile photo
+        </p>
+      </header>
 
-      <section className="border rounded-lg p-6 bg-white space-y-4">
-        <div className="flex items-center gap-4">
-          <div className="h-16 w-16 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-gray-500">
+      <section className="rounded-xl border bg-white p-6 space-y-4">
+        <div className="flex items-center gap-5">
+          <div className="h-20 w-20 rounded-full bg-gray-200 overflow-hidden flex items-center justify-center text-gray-500">
             {profile?.avatar_url ? (
               <img
                 src={profile.avatar_url}
@@ -82,14 +86,14 @@ if (!user) {
                 className="h-full w-full object-cover"
               />
             ) : (
-              <span className="text-lg font-medium">
+              <span className="text-xl font-semibold">
                 {profile?.full_name?.charAt(0) ?? "?"}
               </span>
             )}
           </div>
 
-          <div>
-            <p className="font-medium">
+          <div className="flex-1">
+            <p className="text-lg font-medium">
               {profile?.full_name || "Unnamed user"}
             </p>
             <p className="text-sm text-gray-500">
@@ -101,44 +105,62 @@ if (!user) {
         <AvatarUpload />
       </section>
 
-      <section className="border rounded-lg p-6 bg-white space-y-3">
-        <div className="flex justify-between">
+      <section className="rounded-xl border bg-white p-6 space-y-3">
+        <div className="flex justify-between items-center">
           <p className="font-medium">
             Profile completeness
           </p>
-          <p className="text-sm text-gray-600">
+          <span className="text-sm text-gray-600">
             {completionPercent}%
-          </p>
+          </span>
         </div>
 
-        <div className="w-full h-2 bg-gray-200 rounded overflow-hidden">
+        <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
           <div
-            className="h-full bg-black"
+            className="h-full bg-black transition-all"
             style={{ width: `${completionPercent}%` }}
           />
         </div>
       </section>
 
-      <section className="border rounded-lg p-6 bg-white">
+      <section className="rounded-xl border bg-white p-6">
         <form action={updateProfile} className="space-y-4">
-          <input
-            name="full_name"
-            defaultValue={profile?.full_name ?? ""}
-            className="w-full border rounded px-3 py-2"
-          />
-          <input
-            name="job_title"
-            defaultValue={profile?.job_title ?? ""}
-            className="w-full border rounded px-3 py-2"
-          />
-          <input
-            name="company"
-            defaultValue={profile?.company ?? ""}
-            className="w-full border rounded px-3 py-2"
-          />
+          <div>
+            <label className="text-sm font-medium">
+              Full name
+            </label>
+            <input
+              name="full_name"
+              defaultValue={profile?.full_name ?? ""}
+              className="mt-1 w-full border rounded-md px-3 py-2"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">
+              Job title
+            </label>
+            <input
+              name="job_title"
+              defaultValue={profile?.job_title ?? ""}
+              className="mt-1 w-full border rounded-md px-3 py-2"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm font-medium">
+              Company
+            </label>
+            <input
+              name="company"
+              defaultValue={profile?.company ?? ""}
+              className="mt-1 w-full border rounded-md px-3 py-2"
+            />
+          </div>
+
           <button
             type="submit"
-            className="px-4 py-2 bg-black text-white rounded"
+            className="inline-flex items-center px-4 py-2 rounded-md bg-black text-white text-sm font-medium"
           >
             Save changes
           </button>
@@ -148,7 +170,7 @@ if (!user) {
       <form action={logout}>
         <button
           type="submit"
-          className="w-full px-4 py-3 border border-red-500 text-red-600 rounded-lg"
+          className="w-full px-4 py-3 rounded-xl border border-red-500 text-red-600 text-sm font-medium"
         >
           Log out
         </button>
