@@ -153,9 +153,15 @@ export default function NetworkingClient({
               </p>
 
               <div className="mt-3 flex gap-2">
+                {/* MESSAGE BUTTON */}
                 <Link
-                  href={`/profiles/${otherId}`}
-                  className="flex-1 inline-flex items-center justify-center gap-1 py-1.5 rounded-md border text-xs font-medium"
+                  href={`/messages/${otherId}`}
+                  className="
+                    flex-1 inline-flex items-center justify-center gap-1
+                    py-1.5 rounded-md text-xs font-medium
+                    bg-gradient-to-r from-yellow-400 via-yellow-500 to-black
+                    text-black hover:opacity-90 transition
+                  "
                 >
                   <MessageCircle size={14} />
                   Message
@@ -165,7 +171,11 @@ export default function NetworkingClient({
                   <>
                     <button
                       onClick={() => handleAccept(r.id)}
-                      className="flex-1 inline-flex items-center justify-center gap-1 py-1.5 rounded-md bg-green-600 text-white text-xs font-medium"
+                      className="
+                        flex-1 inline-flex items-center justify-center gap-1
+                        py-1.5 rounded-md
+                        bg-green-600 text-white text-xs font-medium
+                      "
                     >
                       <Check size={14} />
                       Accept
@@ -173,7 +183,12 @@ export default function NetworkingClient({
 
                     <button
                       onClick={() => handleReject(r.id)}
-                      className="flex-1 inline-flex items-center justify-center gap-1 py-1.5 rounded-md border border-red-500 text-red-500 text-xs font-medium"
+                      className="
+                        flex-1 inline-flex items-center justify-center gap-1
+                        py-1.5 rounded-md
+                        border border-red-500 text-red-500
+                        text-xs font-medium
+                      "
                     >
                       <X size={14} />
                       Reject
@@ -204,54 +219,24 @@ export default function NetworkingClient({
       )}
 
       <div className="flex gap-6 border-b">
-        <button
-          onClick={() => setTab("recommended")}
-          className={`pb-3 text-sm font-medium ${
-            tab === "recommended"
-              ? "border-b-2 border-blue-600 text-blue-600"
-              : "text-gray-500"
-          }`}
-        >
-          Recommended
-        </button>
-
-        <button
-          onClick={() => setTab("connections")}
-          className={`pb-3 text-sm font-medium ${
-            tab === "connections"
-              ? "border-b-2 border-blue-600 text-blue-600"
-              : "text-gray-500"
-          }`}
-        >
-          Connections
-        </button>
-
-        <button
-          onClick={() => setTab("received")}
-          className={`pb-3 text-sm font-medium ${
-            tab === "received"
-              ? "border-b-2 border-blue-600 text-blue-600"
-              : "text-gray-500"
-          }`}
-        >
-          Requests
-          {received.length > 0 && (
-            <span className="ml-1 text-xs bg-red-500 text-white rounded-full px-1.5">
-              {received.length}
-            </span>
-          )}
-        </button>
-
-        <button
-          onClick={() => setTab("sent")}
-          className={`pb-3 text-sm font-medium ${
-            tab === "sent"
-              ? "border-b-2 border-blue-600 text-blue-600"
-              : "text-gray-500"
-          }`}
-        >
-          Sent
-        </button>
+        {["recommended", "connections", "received", "sent"].map(t => (
+          <button
+            key={t}
+            onClick={() => setTab(t as any)}
+            className={`pb-3 text-sm font-medium ${
+              tab === t
+                ? "border-b-2 border-blue-600 text-blue-600"
+                : "text-gray-500"
+            }`}
+          >
+            {t === "received" ? "Requests" : t.charAt(0).toUpperCase() + t.slice(1)}
+            {t === "received" && received.length > 0 && (
+              <span className="ml-1 text-xs bg-red-500 text-white rounded-full px-1.5">
+                {received.length}
+              </span>
+            )}
+          </button>
+        ))}
       </div>
 
       {tab === "recommended" &&

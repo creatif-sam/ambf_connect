@@ -8,7 +8,8 @@ import {
   Users,
   Megaphone,
   User,
-  LayoutDashboard
+  LayoutDashboard,
+  MessageCircle
 } from "lucide-react"
 import { useEffect, useState } from "react"
 import { createSupabaseBrowserClient } from "@/lib/supabase/client"
@@ -61,9 +62,23 @@ export default function BottomNav() {
   const navItems: NavItem[] = [
     { label: "Home", href: "/", icon: Home },
     { label: "Events", href: "/events", icon: Calendar },
-    { label: "Networking", href: "/networking", icon: Users },
-    { label: "Announcements", href: "/announcements", icon: Megaphone }
+    { label: "Networking", href: "/networking", icon: Users }
   ]
+
+  /* Messages only for logged in users */
+  if (isLoggedIn) {
+    navItems.push({
+      label: "Messages",
+      href: "/messages",
+      icon: MessageCircle
+    })
+  }
+
+  navItems.push({
+    label: "Announcements",
+    href: "/announcements",
+    icon: Megaphone
+  })
 
   if (isOrganizer) {
     navItems.push({
