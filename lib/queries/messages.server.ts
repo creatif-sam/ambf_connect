@@ -1,20 +1,24 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
-/* =========================
-   FETCH INBOX CONVERSATIONS
-   ========================= */
+/* ===============================
+   INBOX CONVERSATIONS
+   =============================== */
 
 export async function getInboxConversations(userId: string) {
   const supabase = await createSupabaseServerClient()
 
+  /**
+   * Fetch all messages involving the user.
+   * We will group them on the page layer.
+   */
   const { data, error } = await supabase
     .from("messages")
     .select(`
       id,
-      sender_id,
-      receiver_id,
       content,
       created_at,
+      sender_id,
+      receiver_id,
       sender:sender_id (
         id,
         full_name,
@@ -33,30 +37,12 @@ export async function getInboxConversations(userId: string) {
     throw error
   }
 
-  const conversations = new Map<string, any>()
-
-  data.forEach(message => {
-    const otherUser =
-      message.sender_id === userId
-        ? message.receiver
-        : message.sender
-
-    if (!otherUser) return
-
-    if (!conversations.has(otherUser.id)) {
-      conversations.set(otherUser.id, {
-        user: otherUser,
-        lastMessage: message
-      })
-    }
-  })
-
-  return Array.from(conversations.values())
+  return data ?? []
 }
 
-/* =========================
-   FETCH SINGLE CONVERSATION
-   ========================= */
+/* ===============================
+   SINGLE CONVERSATION THREAD
+   =============================== */
 
 export async function getConversation(
   userId: string,
@@ -79,11 +65,11 @@ export async function getConversation(
   return data ?? []
 }
 
-/* =========================
-   SEND MESSAGE
-   ========================= */
+/* ===============================
+   SEND MESSAGE (SERVER SIDE)
+   =============================== */
 
-export async function sendMessage(
+export async function sendMessageServer(
   senderId: string,
   receiverId: string,
   content: string
@@ -99,28 +85,6 @@ export async function sendMessage(
       receiver_id: receiverId,
       content
     })
-
-  if (error) {
-    throw error
-  }
-}
-
-/* =========================
-   MARK MESSAGES AS READ
-   ========================= */
-
-export async function markMessagesAsRead(
-  userId: string,
-  otherUserId: string
-) {
-  const supabase = await createSupabaseServerClient()
-
-  const { error } = await supabase
-    .from("messages")
-    .update({ read_at: new Date().toISOString() })
-    .eq("receiver_id", userId)
-    .eq("sender_id", otherUserId)
-    .is("read_at", null)
 
   if (error) {
     throw error
