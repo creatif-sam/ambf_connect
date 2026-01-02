@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import { formatShortDate } from "@/lib/utils/date"
+
 import Link from "next/link"
 import {
   Search,
@@ -104,8 +106,9 @@ export default function MessagesClient({
                   </p>
 
                   <span className="text-xs text-gray-400">
-                    {new Date(c.lastMessage.created_at).toLocaleDateString()}
-                  </span>
+  {formatShortDate(c.lastMessage.created_at)}
+</span>
+
                 </div>
 
                 <p className="text-xs text-gray-500 truncate">

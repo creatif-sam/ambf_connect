@@ -2,6 +2,7 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { redirect } from "next/navigation"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+
 import {
   getConversation,
   sendMessage
@@ -12,6 +13,17 @@ type Props = {
 }
 
 export const dynamic = "force-dynamic"
+
+/* =========================
+   TIME FORMATTER (SAFE)
+   ========================= */
+function formatTime(dateString: string) {
+  const d = new Date(dateString)
+  return `${d.getUTCHours().toString().padStart(2, "0")}:${d
+    .getUTCMinutes()
+    .toString()
+    .padStart(2, "0")}`
+}
 
 export default async function ConversationPage({
   params
@@ -92,10 +104,7 @@ export default async function ConversationPage({
               {m.content}
 
               <div className="mt-1 text-[10px] text-gray-500 text-right">
-                {new Date(m.created_at).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit"
-                })}
+                {formatTime(m.created_at)}
               </div>
             </div>
           )
