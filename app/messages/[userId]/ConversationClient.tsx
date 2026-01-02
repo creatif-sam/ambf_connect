@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { createSupabaseBrowserClient } from "@/lib/supabase/client"
-import { sendMessageClient } from "@/lib/queries/messages.client"
 
 type Props = {
   meId: string
@@ -12,7 +11,6 @@ type Props = {
   initialMessages: any[]
 }
 
-/* deterministic time formatter */
 function formatTime(dateString: string) {
   const d = new Date(dateString)
   return `${d.getUTCHours().toString().padStart(2, "0")}:${d
@@ -28,17 +26,24 @@ export default function ConversationClient({
 }: Props) {
   const supabase = createSupabaseBrowserClient()
   const [messages, setMessages] = useState(initialMessages)
+  const [isTyping, setIsTyping] = useState(false)
+  const typingTimeout = useRef<NodeJS.Timeout | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
+
+  const roomId =
+    meId < otherUser.id
+      ? `${meId}:${otherUser.id}`
+      : `${otherUser.id}:${meId}`
 
   /* auto scroll */
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+  }, [messages, isTyping])
 
-  /* realtime subscription */
+  /* realtime messages */
   useEffect(() => {
     const channel = supabase
-      .channel(`messages-${meId}-${otherUser.id}`)
+      .channel(`messages:${roomId}`)
       .on(
         "postgres_changes",
         {
@@ -49,20 +54,19 @@ export default function ConversationClient({
         payload => {
           const m = payload.new
 
-          const isRelevant =
+          const relevant =
             (m.sender_id === meId &&
               m.receiver_id === otherUser.id) ||
             (m.sender_id === otherUser.id &&
               m.receiver_id === meId)
 
-          if (!isRelevant) return
+          if (!relevant) return
 
-          setMessages(prev => {
-            if (prev.some(p => p.id === m.id)) {
-              return prev
-            }
-            return [...prev, m]
-          })
+          setMessages(prev =>
+            prev.some(p => p.id === m.id)
+              ? prev
+              : [...prev, m]
+          )
         }
       )
       .subscribe()
@@ -70,7 +74,50 @@ export default function ConversationClient({
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [meId, otherUser.id, supabase])
+  }, [supabase, meId, otherUser.id, roomId])
+
+  /* typing indicator */
+  useEffect(() => {
+    const channel = supabase
+      .channel(`typing:${roomId}`)
+      .on("broadcast", { event: "typing" }, payload => {
+        if (payload.payload.userId === otherUser.id) {
+          setIsTyping(true)
+
+          if (typingTimeout.current) {
+            clearTimeout(typingTimeout.current)
+          }
+
+          typingTimeout.current = setTimeout(() => {
+            setIsTyping(false)
+          }, 2000)
+        }
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [supabase, otherUser.id, roomId])
+
+  async function notifyTyping() {
+    await supabase.channel(`typing:${roomId}`).send({
+      type: "broadcast",
+      event: "typing",
+      payload: { userId: meId }
+    })
+  }
+
+  async function handleSend(content: string) {
+    await fetch("/api/messages/send", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        receiverId: otherUser.id,
+        content
+      })
+    })
+  }
 
   return (
     <main className="h-screen flex flex-col bg-[#efeae2]">
@@ -91,9 +138,16 @@ export default function ConversationClient({
           )}
         </div>
 
-        <p className="font-semibold text-sm text-white">
-          {otherUser?.full_name}
-        </p>
+        <div className="flex flex-col">
+          <p className="font-semibold text-sm text-white">
+            {otherUser.full_name}
+          </p>
+          {isTyping && (
+            <span className="text-xs text-black/80">
+              typing…
+            </span>
+          )}
+        </div>
       </header>
 
       {/* MESSAGES */}
@@ -117,6 +171,13 @@ export default function ConversationClient({
             </div>
           )
         })}
+
+        {isTyping && (
+          <div className="mr-auto bg-white px-3 py-2 rounded-lg text-sm text-gray-500 w-fit">
+            typing…
+          </div>
+        )}
+
         <div ref={bottomRef} />
       </div>
 
@@ -124,16 +185,10 @@ export default function ConversationClient({
       <form
         onSubmit={async e => {
           e.preventDefault()
-          const form = e.currentTarget
-          const input = form.content as HTMLInputElement
-
-          await sendMessageClient(
-            meId,
-            otherUser.id,
-            input.value
-          )
-
+          const input = e.currentTarget.content as HTMLInputElement
+          await handleSend(input.value)
           input.value = ""
+          setIsTyping(false)
         }}
         className="flex items-center gap-2 px-3 py-2 bg-[#f0f0f0]"
       >
@@ -141,6 +196,7 @@ export default function ConversationClient({
           name="content"
           required
           placeholder="Type a message"
+          onChange={notifyTyping}
           className="flex-1 rounded-full px-4 py-2 text-sm outline-none border"
         />
 
