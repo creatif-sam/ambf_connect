@@ -62,7 +62,7 @@ body {
 
 
 
-{/*Animated background for networking section */}
+/*Animated background for networking section */
 
 @keyframes floatNode {
   0% {
@@ -134,7 +134,7 @@ body {
 
 
 
-{/* Emergency Call Modal Styles */}
+/* Emergency Call Modal Styles */
 
 
 @keyframes slide-up {
@@ -148,4 +148,53 @@ body {
 
 .animate-slide-up {
   animation: slide-up 0.35s ease-out;
+}
+
+
+
+/*Animated logo spin for loading states */
+@keyframes ambfFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes ambfSpin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.ambf-loader {
+  position: relative;
+  width: 120px;
+  height: 120px;
+}
+
+.ambf-loader-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  border: 3px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #ffffff;
+  animation: ambfSpin 1.2s linear infinite;
+}
+
+.ambf-loader-logo {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: ambfFadeIn 0.6s ease-out forwards;
 }
