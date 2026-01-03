@@ -66,7 +66,7 @@ export default function DashboardPage() {
           title="All Attendees"
           description="View all registered participants across events"
           icon={Users}
-          disabled
+          href="/dashboard/attendees"
         />
 
         <DashboardAction
@@ -86,17 +86,29 @@ export default function DashboardPage() {
 
       {/* ================= EVENTS LIST ================= */}
       <section className="space-y-4">
-        <h2 className="text-lg font-medium">
-          My Events
-        </h2>
-
-        {events.length === 0 && (
-          <p className="text-sm text-gray-500">
-            No events created yet.
-          </p>
-        )}
+        <h2 className="text-lg font-medium">My Events</h2>
 
         <div className="grid md:grid-cols-2 gap-4">
+          {/* Create Event Card */}
+          <Link
+            href="/dashboard/events/create"
+            className="
+              border-dashed border-2 rounded-xl p-5
+              flex flex-col items-center justify-center
+              text-center
+              text-gray-500
+              hover:border-black hover:text-black
+              transition
+            "
+          >
+            <PlusCircle className="h-8 w-8 mb-2" />
+            <p className="font-medium">Create new event</p>
+            <p className="text-sm">
+              Set up a new conference or meeting
+            </p>
+          </Link>
+
+          {/* Existing Events */}
           {events.map(event => (
             <div
               key={event.id}
@@ -111,9 +123,16 @@ export default function DashboardPage() {
                 <h3 className="font-semibold text-lg">
                   {event.title}
                 </h3>
-                <p className="text-sm text-gray-500">
-                  {event.slug}
-                </p>
+
+                {event.start_date && (
+                  <p className="text-sm text-gray-500">
+                    {event.start_date}
+                    {event.end_date
+                      ? ` – ${event.end_date}`
+                      : ""}
+                  </p>
+                )}
+
                 <span className="text-xs text-gray-400">
                   {event.is_published ? "Published" : "Draft"}
                 </span>
@@ -148,6 +167,12 @@ export default function DashboardPage() {
             </div>
           ))}
         </div>
+
+        {events.length === 0 && (
+          <p className="text-sm text-gray-500">
+            You have not created any events yet.
+          </p>
+        )}
       </section>
     </main>
   )
@@ -159,10 +184,14 @@ function DashboardAction({
   title,
   description,
   icon: Icon,
+  href,
   disabled = false
 }: any) {
+  const Wrapper = href && !disabled ? Link : "div"
+
   return (
-    <div
+    <Wrapper
+      href={href}
       className={`
         border rounded-xl p-5
         flex gap-4 items-start
@@ -176,9 +205,7 @@ function DashboardAction({
       <Icon className="h-6 w-6 mt-1" />
 
       <div>
-        <p className="font-medium">
-          {title}
-        </p>
+        <p className="font-medium">{title}</p>
         <p className="text-sm text-gray-500">
           {description}
         </p>
@@ -188,7 +215,7 @@ function DashboardAction({
           </p>
         )}
       </div>
-    </div>
+    </Wrapper>
   )
 }
 

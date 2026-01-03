@@ -7,26 +7,18 @@ export async function fetchMyEvents() {
     data: { user }
   } = await supabase.auth.getUser()
 
-  if (!user) {
+  if (!user) return []
+
+  const { data, error } = await supabase
+    .from("events")
+    .select("id, title, slug, start_date, end_date, is_published")
+    .eq("created_by", user.id)
+    .order("created_at", { ascending: false })
+
+  if (error) {
+    console.error(error)
     return []
   }
 
-  const { data, error } = await supabase
-    .from("event_members")
-    .select(`
-      events (
-        id,
-        title,
-        description,
-        start_date,
-        end_date
-      )
-    `)
-    .eq("user_id", user.id)
-
-  if (error) {
-    throw error
-  }
-
-  return data?.map(row => row.events) ?? []
+  return data ?? []
 }
