@@ -1,114 +1,171 @@
+"use client"
+
+import { useEffect, useState } from "react"
 import Link from "next/link"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { Trash2, Eye } from "lucide-react"
+import { createSupabaseBrowserClient } from "@/lib/supabase/client"
 
-export default async function AllAttendeesPage() {
-  const supabase = await createSupabaseServerClient()
+type AttendeeRow = {
+  id: string
+  user_id: string
+  event_id: string
+  profiles: {
+    full_name: string | null
+  } | null
+  events: {
+    title: string
+  } | null
+}
 
-  const {
-    data: { user }
-  } = await supabase.auth.getUser()
+export default function AttendeesPage() {
+  const supabase = createSupabaseBrowserClient()
 
-  if (!user) return null
+  const [attendees, setAttendees] = useState<AttendeeRow[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const { data: attendees, error } = await supabase
-    .from("event_members")
-    .select(`
-      id,
-      role,
-      created_at,
-      events (
-        id,
-        title
-      ),
-      profiles (
-        id,
-        full_name
+  useEffect(() => {
+    async function loadAttendees() {
+      const { data, error } = await supabase
+        .from("event_members")
+        .select(`
+          id,
+          user_id,
+          event_id,
+          profiles:profiles (
+            full_name
+          ),
+          events:events (
+            title
+          )
+        `)
+        .order("created_at", { ascending: false })
+
+      if (!error && data) {
+        setAttendees(data)
+      }
+
+      setLoading(false)
+    }
+
+    loadAttendees()
+  }, [supabase])
+
+  async function removeAttendee(id: string) {
+    const confirmed = confirm(
+      "Remove this participant from the event?"
+    )
+    if (!confirmed) return
+
+    const { error } = await supabase
+      .from("event_members")
+      .delete()
+      .eq("id", id)
+
+    if (!error) {
+      setAttendees(prev =>
+        prev.filter(a => a.id !== id)
       )
-    `)
-    .eq("role", "attendee")
-    .order("created_at", { ascending: false })
+    } else {
+      alert("Failed to remove participant")
+    }
+  }
 
-  if (error) {
-    throw new Error(error.message)
+  if (loading) {
+    return (
+      <main className="p-8">
+        <p className="text-sm text-zinc-500">
+          Loading participants…
+        </p>
+      </main>
+    )
   }
 
   return (
-    <div className="px-4 sm:px-6 lg:px-8 py-6">
-      <div className="mx-auto max-w-6xl space-y-6">
-        {/* Breadcrumbs */}
-        <nav className="text-sm text-zinc-500">
-          <ol className="flex items-center gap-2">
-            <li>
-              <Link href="/dashboard" className="hover:text-black">
-                Dashboard
-              </Link>
-            </li>
-            <li>›</li>
-            <li className="text-black font-medium">
-              All attendees
-            </li>
-          </ol>
-        </nav>
+    <main className="max-w-6xl mx-auto p-6 space-y-6">
+      <header>
+        <h1 className="text-2xl font-semibold">
+          All Participants
+        </h1>
+        <p className="text-sm text-zinc-500">
+          Manage participants across all events
+        </p>
+      </header>
 
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-semibold">
-            All attendees
-          </h1>
-          <p className="text-sm text-zinc-500">
-            Participants registered across your events
-          </p>
-        </div>
+      {attendees.length === 0 && (
+        <p className="text-sm text-zinc-500">
+          No participants found.
+        </p>
+      )}
 
-        {/* Table */}
-        {attendees.length === 0 ? (
-          <div className="rounded-md border p-8 text-center text-sm text-zinc-500">
-            No attendees found
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-lg border bg-white">
-            <table className="w-full text-sm">
-              <thead className="bg-zinc-50 text-left">
-                <tr>
-                  <th className="px-4 py-3 font-medium">
-                    Name
-                  </th>
-                  <th className="px-4 py-3 font-medium">
-                    Event
-                  </th>
-                  <th className="px-4 py-3 font-medium">
-                    Registered
-                  </th>
+      {attendees.length > 0 && (
+        <div className="overflow-x-auto rounded-xl border bg-white">
+          <table className="min-w-full text-sm">
+            <thead className="bg-zinc-50 text-zinc-600">
+              <tr>
+                <th className="px-4 py-3 text-left">
+                  Name
+                </th>
+                <th className="px-4 py-3 text-left">
+                  Event
+                </th>
+                <th className="px-4 py-3 text-left">
+                  Role
+                </th>
+                <th className="px-4 py-3 text-right">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {attendees.map(item => (
+                <tr
+                  key={item.id}
+                  className="border-t"
+                >
+                  <td className="px-4 py-3">
+                    {item.profiles?.full_name ??
+                      "Unnamed participant"}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    {item.events?.title ??
+                      "Unknown event"}
+                  </td>
+
+                  <td className="px-4 py-3">
+                    <span className="inline-flex rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600">
+                      Attendee
+                    </span>
+                  </td>
+
+                  <td className="px-4 py-3">
+                    <div className="flex justify-end gap-2">
+                      <Link
+                        href={`/dashboard/events/${item.event_id}/attendees`}
+                        className="rounded-md border p-2 hover:border-black"
+                        title="View event attendees"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Link>
+
+                      <button
+                        onClick={() =>
+                          removeAttendee(item.id)
+                        }
+                        className="rounded-md border p-2 text-red-600 hover:border-red-600"
+                        title="Remove participant"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-
-              <tbody>
-                {attendees.map(item => (
-                  <tr
-                    key={item.id}
-                    className="border-t"
-                  >
-                    <td className="px-4 py-3">
-                      {item.profiles?.[0]?.full_name ?? "Unnamed user"}
-                    </td>
-
-                    <td className="px-4 py-3">
-                     {item.events?.[0]?.title ?? "Unknown event"}
-
-                    </td>
-
-                    <td className="px-4 py-3 text-zinc-500">
-                      {new Date(
-                        item.created_at
-                      ).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </main>
   )
 }

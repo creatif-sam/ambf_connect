@@ -12,9 +12,12 @@ import {
 } from "lucide-react"
 import { useRequireAuth } from "@/hooks/useRequireAuth"
 import { fetchMyEvents } from "@/lib/queries/myEvents"
+import { createSupabaseBrowserClient } from "@/lib/supabase/client"
 
 export default function DashboardPage() {
   const { loading } = useRequireAuth()
+  const supabase = createSupabaseBrowserClient()
+
   const [events, setEvents] = useState<any[]>([])
   const [fetching, setFetching] = useState(true)
 
@@ -23,6 +26,37 @@ export default function DashboardPage() {
       .then(setEvents)
       .finally(() => setFetching(false))
   }, [])
+
+  async function togglePublish(
+    eventId: string,
+    currentValue: boolean
+  ) {
+    // optimistic update
+    setEvents(prev =>
+      prev.map(ev =>
+        ev.id === eventId
+          ? { ...ev, is_published: !currentValue }
+          : ev
+      )
+    )
+
+    const { error } = await supabase
+      .from("events")
+      .update({ is_published: !currentValue })
+      .eq("id", eventId)
+
+    if (error) {
+      // rollback on failure
+      setEvents(prev =>
+        prev.map(ev =>
+          ev.id === eventId
+            ? { ...ev, is_published: currentValue }
+            : ev
+        )
+      )
+      alert("Failed to update publish status")
+    }
+  }
 
   if (loading || fetching) {
     return (
@@ -133,9 +167,52 @@ export default function DashboardPage() {
                   </p>
                 )}
 
-                <span className="text-xs text-gray-400">
-                  {event.is_published ? "Published" : "Draft"}
-                </span>
+                {/* Status badge + toggle */}
+                <div className="mt-2 flex items-center gap-3">
+                  <span
+                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                      event.is_published
+                        ? "bg-green-100 text-green-700"
+                        : "bg-zinc-100 text-zinc-600"
+                    }`}
+                  >
+                    {event.is_published ? "Published" : "Draft"}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      togglePublish(
+                        event.id,
+                        event.is_published
+                      )
+                    }
+                    className={`
+                      relative inline-flex h-5 w-9
+                      items-center rounded-full
+                      transition-colors
+                      ${
+                        event.is_published
+                          ? "bg-green-600"
+                          : "bg-zinc-300"
+                      }
+                    `}
+                    aria-label="Toggle publish status"
+                  >
+                    <span
+                      className={`
+                        inline-block h-4 w-4
+                        transform rounded-full bg-white
+                        transition-transform
+                        ${
+                          event.is_published
+                            ? "translate-x-4"
+                            : "translate-x-1"
+                        }
+                      `}
+                    />
+                  </button>
+                </div>
               </div>
 
               {/* Event Actions */}

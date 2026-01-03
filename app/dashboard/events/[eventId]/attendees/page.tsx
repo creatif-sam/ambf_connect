@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import Image from "next/image"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
 type PageProps = {
@@ -20,7 +21,8 @@ export default async function EventAttendeesPage({
 
   if (!user) return null
 
-  // Verify event ownership
+  /* ================= VERIFY EVENT OWNERSHIP ================= */
+
   const { data: event } = await supabase
     .from("events")
     .select("id, title")
@@ -32,7 +34,8 @@ export default async function EventAttendeesPage({
     notFound()
   }
 
-  // Fetch attendees
+  /* ================= FETCH ATTENDEES ================= */
+
   const { data: attendees, error } = await supabase
     .from("event_members")
     .select(`
@@ -40,7 +43,8 @@ export default async function EventAttendeesPage({
       created_at,
       profiles (
         id,
-        full_name
+        full_name,
+        avatar_url
       )
     `)
     .eq("event_id", eventId)
@@ -54,7 +58,7 @@ export default async function EventAttendeesPage({
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6">
       <div className="mx-auto max-w-6xl space-y-6">
-        {/* Breadcrumbs */}
+        {/* ================= BREADCRUMBS ================= */}
         <nav className="text-sm text-zinc-500">
           <ol className="flex items-center gap-2">
             <li>
@@ -81,13 +85,13 @@ export default async function EventAttendeesPage({
               </Link>
             </li>
             <li>›</li>
-            <li className="text-black font-medium">
+            <li className="font-medium text-black">
               Attendees
             </li>
           </ol>
         </nav>
 
-        {/* Header */}
+        {/* ================= HEADER ================= */}
         <div>
           <h1 className="text-2xl font-semibold">
             Attendees
@@ -97,7 +101,7 @@ export default async function EventAttendeesPage({
           </p>
         </div>
 
-        {/* Attendees table */}
+        {/* ================= TABLE ================= */}
         {attendees.length === 0 ? (
           <div className="rounded-md border p-8 text-center text-sm text-zinc-500">
             No attendees registered yet
@@ -108,7 +112,7 @@ export default async function EventAttendeesPage({
               <thead className="bg-zinc-50 text-left">
                 <tr>
                   <th className="px-4 py-3 font-medium">
-                    Name
+                    Participant
                   </th>
                   <th className="px-4 py-3 font-medium">
                     Registered
@@ -125,17 +129,40 @@ export default async function EventAttendeesPage({
                     key={item.id}
                     className="border-t"
                   >
+                    {/* ================= AVATAR + NAME ================= */}
                     <td className="px-4 py-3">
-                     {item.profiles?.[0]?.full_name ?? "Unnamed user"}
+                      <div className="flex items-center gap-3">
+                        {item.profiles?.avatar_url ? (
+                          <Image
+                            src={item.profiles.avatar_url}
+                            alt={item.profiles.full_name ?? "User"}
+                            width={32}
+                            height={32}
+                            className="rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="h-8 w-8 rounded-full bg-zinc-200 flex items-center justify-center text-xs text-zinc-500">
+                            {item.profiles?.full_name
+                              ?.charAt(0)
+                              .toUpperCase() ?? "?"}
+                          </div>
+                        )}
 
+                        <span>
+                          {item.profiles?.full_name ??
+                            "Unnamed user"}
+                        </span>
+                      </div>
                     </td>
 
+                    {/* ================= DATE ================= */}
                     <td className="px-4 py-3 text-zinc-500">
                       {new Date(
                         item.created_at
                       ).toLocaleDateString()}
                     </td>
 
+                    {/* ================= ACTIONS ================= */}
                     <td className="px-4 py-3 text-right">
                       <div className="inline-flex gap-2">
                         <Link
@@ -184,7 +211,7 @@ function RemoveAttendeeButton({
 
       <button
         type="submit"
-        className="rounded-md border px-3 py-1 text-xs text-red-600"
+        className="rounded-md border px-3 py-1 text-xs text-red-600 hover:border-red-600"
       >
         Remove
       </button>
