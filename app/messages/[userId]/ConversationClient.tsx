@@ -2,13 +2,18 @@
 
 import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
-import {
-  ArrowLeft,
-  Send,
-  Smile
-} from "lucide-react"
+import { ArrowLeft, Send, Smile } from "lucide-react"
 import { createSupabaseBrowserClient } from "@/lib/supabase/client"
 import { usePresence } from "@/hooks/usePresence"
+
+type Message = {
+  id: string
+  sender_id: string
+  receiver_id: string
+  content: string
+  created_at: string
+  read_at?: string | null
+}
 
 type Props = {
   meId: string
@@ -17,10 +22,9 @@ type Props = {
     full_name: string
     avatar_url: string | null
   }
-  initialMessages: any[]
+  initialMessages: Message[]
 }
 
-/* deterministic time formatter */
 function formatTime(dateString: string) {
   const d = new Date(dateString)
   return `${d.getUTCHours().toString().padStart(2, "0")}:${d
@@ -37,13 +41,17 @@ export default function ConversationClient({
   initialMessages
 }: Props) {
   const supabase = createSupabaseBrowserClient()
-  const [messages, setMessages] = useState(initialMessages)
+
+  const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [showEmoji, setShowEmoji] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
 
   const inputRef = useRef<HTMLInputElement | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const typingTimeout = useRef<NodeJS.Timeout | null>(null)
+
+  const messagesChannelRef = useRef<any>(null)
+  const typingChannelRef = useRef<any>(null)
 
   const { online, lastSeen } = usePresence(meId, otherUser.id)
 
@@ -57,33 +65,59 @@ export default function ConversationClient({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages, isTyping])
 
+  /* mark conversation as read on open */
+  useEffect(() => {
+    fetch("/api/messages/read", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ otherUserId: otherUser.id })
+    })
+  }, [otherUser.id])
+
   /* realtime messages */
   useEffect(() => {
-    const channel = supabase
-      .channel(`messages:${roomId}`)
+    const channel = supabase.channel(`messages:${roomId}`)
+    messagesChannelRef.current = channel
+
+    channel
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages" },
         payload => {
-          const m = payload.new
+          const m = payload.new as Message
+
           const relevant =
-            (m.sender_id === meId && m.receiver_id === otherUser.id) ||
-            (m.sender_id === otherUser.id && m.receiver_id === meId)
+            (m.sender_id === meId &&
+              m.receiver_id === otherUser.id) ||
+            (m.sender_id === otherUser.id &&
+              m.receiver_id === meId)
 
           if (!relevant) return
 
           setMessages(prev =>
-            prev.some(p => p.id === m.id) ? prev : [...prev, m]
+            prev.some(p => p.id === m.id)
+              ? prev
+              : [...prev, m]
           )
+
+          if (m.sender_id === otherUser.id) {
+            fetch("/api/messages/read", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ otherUserId: otherUser.id })
+            })
+          }
         }
       )
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "messages" },
         payload => {
-          const updated = payload.new
+          const updated = payload.new as Message
           setMessages(prev =>
-            prev.map(m => (m.id === updated.id ? updated : m))
+            prev.map(m =>
+              m.id === updated.id ? updated : m
+            )
           )
         }
       )
@@ -94,17 +128,20 @@ export default function ConversationClient({
     }
   }, [supabase, meId, otherUser.id, roomId])
 
-  /* typing indicator */
+  /* typing channel */
   useEffect(() => {
-    const channel = supabase
-      .channel(`typing:${roomId}`)
+    const channel = supabase.channel(`typing:${roomId}`)
+    typingChannelRef.current = channel
+
+    channel
       .on("broadcast", { event: "typing" }, payload => {
         if (payload.payload.userId === otherUser.id) {
           setIsTyping(true)
           if (typingTimeout.current) clearTimeout(typingTimeout.current)
-          typingTimeout.current = setTimeout(() => {
-            setIsTyping(false)
-          }, 2000)
+          typingTimeout.current = setTimeout(
+            () => setIsTyping(false),
+            2000
+          )
         }
       })
       .subscribe()
@@ -115,15 +152,31 @@ export default function ConversationClient({
   }, [supabase, otherUser.id, roomId])
 
   async function notifyTyping() {
-    await supabase.channel(`typing:${roomId}`).send({
+    typingChannelRef.current?.send({
       type: "broadcast",
       event: "typing",
       payload: { userId: meId }
     })
   }
 
+  /* optimistic UI insert */
+  function addOptimisticMessage(content: string) {
+    const optimistic: Message = {
+      id: crypto.randomUUID(),
+      sender_id: meId,
+      receiver_id: otherUser.id,
+      content,
+      created_at: new Date().toISOString(),
+      read_at: null
+    }
+
+    setMessages(prev => [...prev, optimistic])
+  }
+
   async function sendMessage(content: string) {
     if (!content.trim()) return
+
+    addOptimisticMessage(content)
 
     await fetch("/api/messages/send", {
       method: "POST",
@@ -144,9 +197,7 @@ export default function ConversationClient({
 
   return (
     <main className="h-screen bg-[#efeae2] flex justify-center">
-
-      {/* DESKTOP CONTAINER */}
-      <div className="w-full max-w-4xl flex flex-col bg-[#efeae2]">
+      <div className="w-full max-w-4xl flex flex-col">
 
         {/* HEADER */}
         <header className="sticky top-0 z-40 flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-yellow-400 via-yellow-500 to-black">
@@ -209,7 +260,6 @@ export default function ConversationClient({
                 }`}
               >
                 {m.content}
-
                 <div className="mt-1 flex justify-end gap-1 text-[10px] text-gray-500">
                   <span>{formatTime(m.created_at)}</span>
                   {isMe && (
@@ -236,27 +286,25 @@ export default function ConversationClient({
           onSubmit={async e => {
             e.preventDefault()
             if (!inputRef.current) return
-            await sendMessage(inputRef.current.value)
+            const value = inputRef.current.value
             inputRef.current.value = ""
-            setIsTyping(false)
+            await sendMessage(value)
           }}
           className="relative flex items-center gap-2 px-3 py-2 bg-[#f0f0f0]"
         >
           <button
             type="button"
             onClick={() => setShowEmoji(v => !v)}
-            className="text-gray-600 hover:text-black"
+            className="text-gray-600"
           >
             <Smile size={20} />
           </button>
 
           <input
             ref={inputRef}
-            name="content"
-            required
             placeholder="Type a message"
             onChange={notifyTyping}
-            className="flex-1 rounded-full px-4 py-2 text-sm outline-none border"
+            className="flex-1 rounded-full px-4 py-2 text-sm border outline-none"
           />
 
           <button
@@ -266,7 +314,6 @@ export default function ConversationClient({
             <Send size={18} />
           </button>
 
-          {/* EMOJI PICKER */}
           {showEmoji && (
             <div className="absolute bottom-14 left-4 bg-white rounded-lg shadow p-2 grid grid-cols-5 gap-2">
               {EMOJIS.map(e => (
