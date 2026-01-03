@@ -1,6 +1,7 @@
 import "./globals.css"
 import TopNav from "@/components/TopNav"
 import BottomNav from "@/components/BottomNav"
+import PushBootstrap from "@/components/PushBootstrap"
 
 export default function RootLayout({
   children
@@ -10,12 +11,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body suppressHydrationWarning>
+        <PushBootstrap />
+
         <TopNav />
-
-        <main className="pt-14 pb-16">
-          {children}
-        </main>
-
+        <main className="pt-14 pb-16">{children}</main>
         <BottomNav />
       </body>
     </html>
