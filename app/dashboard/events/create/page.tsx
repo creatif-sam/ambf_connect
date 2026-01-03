@@ -1,167 +1,191 @@
-import { notFound } from "next/navigation"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
+"use client"
 
-type PageProps = {
-  params: {
-    slug: string
-  }
-}
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { createSupabaseBrowserClient } from "@/lib/supabase/client"
 
-type Profile = {
-  id: string
-  full_name: string | null
-  avatar_url: string | null
-}
+export default function CreateEventPage() {
+  const router = useRouter()
+  const supabase = createSupabaseBrowserClient()
 
-type EventMemberRow = {
-  id: string
-  role: "organizer" | "speaker" | "attendee"
-  profiles: Profile[] | null
-}
+  const [title, setTitle] = useState("")
+  const [slug, setSlug] = useState("")
+  const [startDate, setStartDate] = useState("")
+  const [endDate, setEndDate] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-type Attendee = {
-  id: string
-  role: "organizer" | "speaker" | "attendee"
-  profile: Profile
-}
-
-type NetworkingRow = {
-  sender_id: string
-  receiver_id: string
-  status: "pending" | "accepted" | "rejected"
-}
-
-export default async function EventDetailPage({ params }: PageProps) {
-  const { slug } = params
-
-  const supabase = await createSupabaseServerClient()
-
-  const {
-    data: { user }
-  } = await supabase.auth.getUser()
-
-  const { data: event, error: eventError } = await supabase
-    .from("events")
-    .select("id, title, description")
-    .eq("slug", slug)
-    .single()
-
-  if (eventError || !event) {
-    notFound()
+  function generateSlug(value: string) {
+    return value
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, "")
   }
 
-  const { data: members, error: membersError } = await supabase
-    .from("event_members")
-    .select(
-      `
-        id,
-        role,
-        profiles (
-          id,
-          full_name,
-          avatar_url
-        )
-      `
-    )
-    .eq("event_id", event.id)
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
 
-  if (membersError) {
-    throw membersError
-  }
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
 
-  const attendees: Attendee[] = (members as EventMemberRow[] ?? [])
-    .filter(m => m.profiles && m.profiles.length > 0)
-    .map(m => ({
-      id: m.id,
-      role: m.role,
-      profile: m.profiles![0]
-    }))
-
-  let networkingMap = new Map<
-    string,
-    {
-      status: "pending" | "accepted" | "rejected"
-      direction: "incoming" | "outgoing"
+    if (!user) {
+      setError("You must be logged in to create an event")
+      setLoading(false)
+      return
     }
-  >()
 
-  if (user) {
-    const { data: networkingRows } = await supabase
-      .from("networking_requests")
-      .select("sender_id, receiver_id, status")
-      .eq("event_id", event.id)
-      .or(
-        `sender_id.eq.${user.id},receiver_id.eq.${user.id}`
-      )
+    const finalSlug = slug || generateSlug(title)
 
-    ;(networkingRows as NetworkingRow[] ?? []).forEach(n => {
-      const isOutgoing = n.sender_id === user.id
-      const otherUserId = isOutgoing ? n.receiver_id : n.sender_id
-
-      networkingMap.set(otherUserId, {
-        status: n.status,
-        direction: isOutgoing ? "outgoing" : "incoming"
+    const { data, error } = await supabase
+      .from("events")
+      .insert({
+        title,
+        slug: finalSlug,
+        start_date: startDate || null,
+        end_date: endDate || null,
+        created_by: user.id
       })
-    })
+      .select("id")
+      .single()
+
+    if (error) {
+      setError(error.message)
+      setLoading(false)
+      return
+    }
+
+    router.push(`/dashboard/events/${data.id}`)
   }
 
   return (
-    <main className="max-w-5xl mx-auto px-6 py-10">
-      <header className="mb-10">
-        <h1 className="text-3xl font-bold">{event.title}</h1>
-        {event.description && (
-          <p className="mt-2 text-gray-600">{event.description}</p>
-        )}
-      </header>
-
-      <section>
-        <h2 className="text-xl font-semibold mb-4">
-          Attendees {attendees.length}
-        </h2>
-
-        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {attendees.map(attendee => {
-            const networking = networkingMap.get(attendee.profile.id)
-
-            return (
-              <li
-                key={attendee.id}
-                className="border rounded-lg p-4 flex items-center justify-between"
+    <div className="px-4 sm:px-6 lg:px-8 py-6">
+      <div className="mx-auto max-w-2xl space-y-6">
+        {/* Breadcrumbs */}
+        <nav className="text-sm text-zinc-500">
+          <ol className="flex items-center gap-2">
+            <li>
+              <Link href="/dashboard" className="hover:text-black">
+                Dashboard
+              </Link>
+            </li>
+            <li>›</li>
+            <li>
+              <Link
+                href="/dashboard/events"
+                className="hover:text-black"
               >
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-gray-200 overflow-hidden">
-                    {attendee.profile.avatar_url && (
-                      <img
-                        src={attendee.profile.avatar_url}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    )}
-                  </div>
+                Events
+              </Link>
+            </li>
+            <li>›</li>
+            <li className="text-black font-medium">
+              Create event
+            </li>
+          </ol>
+        </nav>
 
-                  <div>
-                    <p className="font-medium">
-                      {attendee.profile.full_name ?? "Unnamed user"}
-                    </p>
-                  </div>
-                </div>
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-semibold">
+            Create new event
+          </h1>
+          <p className="text-sm text-zinc-500">
+            Set up a new event and start managing its content
+          </p>
+        </div>
 
-                <div>
-                  {networking ? (
-                    <span className="text-sm text-gray-600">
-                      {networking.status}
-                    </span>
-                  ) : (
-                    <span className="text-sm text-gray-400">
-                      Not connected
-                    </span>
-                  )}
-                </div>
-              </li>
-            )
-          })}
-        </ul>
-      </section>
-    </main>
+        {/* Form */}
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-5 rounded-xl border bg-white p-6"
+        >
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Event title
+            </label>
+            <input
+              value={title}
+              onChange={e => {
+                setTitle(e.target.value)
+                setSlug(generateSlug(e.target.value))
+              }}
+              required
+              className="w-full rounded-md border px-3 py-2"
+              placeholder="Africa Med Conference 2026"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">
+              Slug
+            </label>
+            <input
+              value={slug}
+              onChange={e => setSlug(e.target.value)}
+              className="w-full rounded-md border px-3 py-2"
+              placeholder="africa-med-conference-2026"
+            />
+            <p className="mt-1 text-xs text-zinc-500">
+              Used in URLs. Auto-generated from title if left
+              empty.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Start date
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={e => setStartDate(e.target.value)}
+                className="w-full rounded-md border px-3 py-2"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                End date
+              </label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={e => setEndDate(e.target.value)}
+                className="w-full rounded-md border px-3 py-2"
+              />
+            </div>
+          </div>
+
+          {error && (
+            <p className="text-sm text-red-600">
+              {error}
+            </p>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <Link
+              href="/dashboard/events"
+              className="rounded-md border px-4 py-2"
+            >
+              Cancel
+            </Link>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="rounded-md bg-black px-4 py-2 text-white"
+            >
+              {loading ? "Creating…" : "Create event"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   )
 }
