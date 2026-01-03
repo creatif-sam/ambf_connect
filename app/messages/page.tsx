@@ -12,9 +12,7 @@ export default async function MessagesPage() {
     data: { user }
   } = await supabase.auth.getUser()
 
-  if (!user) {
-    redirect("/auth/login")
-  }
+  if (!user) redirect("/auth/login")
 
   const conversations = await getInboxConversations(user.id)
 

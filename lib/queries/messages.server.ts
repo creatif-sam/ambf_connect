@@ -28,7 +28,9 @@ export async function getConversation(
 ) {
   const supabase = await createSupabaseServerClient()
 
-  const logic = `and(sender_id.eq.${meId},receiver_id.eq.${otherId}),and(sender_id.eq.${otherId},receiver_id.eq.${meId})`
+  const logic =
+    `and(sender_id.eq.${meId},receiver_id.eq.${otherId}),` +
+    `and(sender_id.eq.${otherId},receiver_id.eq.${meId})`
 
   const { data, error } = await supabase
     .from("messages")
@@ -43,6 +45,7 @@ export async function getConversation(
 
   return data ?? []
 }
+
 
 /* =========================
    SEND MESSAGE
@@ -79,18 +82,22 @@ export async function markConversationAsRead(
 
   const { error } = await supabase
     .from("messages")
-    .update({ read_at: new Date().toISOString() })
+    .update({
+      read_at: new Date().toISOString()
+    })
     .eq("receiver_id", meId)
     .eq("sender_id", otherId)
     .is("read_at", null)
 
   if (error) {
-    console.error("Mark as read error:", error)
+    console.error("Mark read error:", error)
     throw error
   }
 }
 
-
+/* =========================
+   UNREAD COUNT (GLOBAL)
+   ========================= */
 export async function getUnreadCount(meId: string) {
   const supabase = await createSupabaseServerClient()
 

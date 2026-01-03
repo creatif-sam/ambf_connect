@@ -9,13 +9,13 @@ import ConversationClient from "./ConversationClient"
 export const dynamic = "force-dynamic"
 
 type Props = {
-  params: Promise<{ userId: string }>
+  params: Promise<{ userId?: string }>
 }
 
-export default async function ConversationPage({
-  params
-}: Props) {
+export default async function ConversationPage({ params }: Props) {
+  /* ✅ unwrap params */
   const { userId } = await params
+
   const supabase = await createSupabaseServerClient()
 
   const {
@@ -26,8 +26,10 @@ export default async function ConversationPage({
     redirect("/auth/login")
   }
 
-  /* 🔴 RESET UNREAD HERE */
-  await markConversationAsRead(user.id, userId)
+  /* 🔒 hard guard */
+  if (!userId) {
+    return null
+  }
 
   const { data: otherUser } = await supabase
     .from("profiles")
@@ -35,16 +37,19 @@ export default async function ConversationPage({
     .eq("id", userId)
     .single()
 
-  const initialMessages = await getConversation(
-    user.id,
-    userId
-  )
+  if (!otherUser) {
+    return null
+  }
+
+  const messages = await getConversation(user.id, userId)
+
+  await markConversationAsRead(user.id, userId)
 
   return (
     <ConversationClient
       meId={user.id}
       otherUser={otherUser}
-      initialMessages={initialMessages}
+      initialMessages={messages}
     />
   )
 }
