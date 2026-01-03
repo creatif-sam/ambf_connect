@@ -31,10 +31,10 @@ export default function AttendeesPage() {
           id,
           user_id,
           event_id,
-          profiles:profiles (
+          profiles!inner (
             full_name
           ),
-          events:events (
+          events!inner (
             title
           )
         `)
@@ -119,10 +119,7 @@ export default function AttendeesPage() {
 
             <tbody>
               {attendees.map(item => (
-                <tr
-                  key={item.id}
-                  className="border-t"
-                >
+                <tr key={item.id} className="border-t">
                   <td className="px-4 py-3">
                     {item.profiles?.full_name ??
                       "Unnamed participant"}
