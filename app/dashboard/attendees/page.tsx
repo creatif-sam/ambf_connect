@@ -89,13 +89,12 @@ export default async function AllAttendeesPage() {
                     className="border-t"
                   >
                     <td className="px-4 py-3">
-                      {item.profiles?.full_name ??
-                        "Unnamed user"}
+                      {item.profiles?.[0]?.full_name ?? "Unnamed user"}
                     </td>
 
                     <td className="px-4 py-3">
-                      {item.events?.title ??
-                        "Unknown event"}
+                     {item.events?.[0]?.title ?? "Unknown event"}
+
                     </td>
 
                     <td className="px-4 py-3 text-zinc-500">
