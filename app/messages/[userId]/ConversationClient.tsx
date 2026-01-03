@@ -13,6 +13,7 @@ type Message = {
   content: string
   created_at: string
   read_at?: string | null
+  optimistic?: boolean
 }
 
 type Props = {
@@ -33,6 +34,14 @@ function formatTime(dateString: string) {
     .padStart(2, "0")}`
 }
 
+function sortMessages(list: Message[]) {
+  return [...list].sort(
+    (a, b) =>
+      new Date(a.created_at).getTime() -
+      new Date(b.created_at).getTime()
+  )
+}
+
 const EMOJIS = ["😀","😂","😍","👍","🙏","🔥","❤️","🎉","😎","😢"]
 
 export default function ConversationClient({
@@ -42,7 +51,9 @@ export default function ConversationClient({
 }: Props) {
   const supabase = createSupabaseBrowserClient()
 
-  const [messages, setMessages] = useState<Message[]>(initialMessages)
+  const [messages, setMessages] = useState<Message[]>(
+    sortMessages(initialMessages)
+  )
   const [showEmoji, setShowEmoji] = useState(false)
   const [isTyping, setIsTyping] = useState(false)
 
@@ -50,7 +61,6 @@ export default function ConversationClient({
   const bottomRef = useRef<HTMLDivElement | null>(null)
   const typingTimeout = useRef<NodeJS.Timeout | null>(null)
 
-  const messagesChannelRef = useRef<any>(null)
   const typingChannelRef = useRef<any>(null)
 
   const { online, lastSeen } = usePresence(meId, otherUser.id)
@@ -76,13 +86,15 @@ export default function ConversationClient({
 
   /* realtime messages */
   useEffect(() => {
-    const channel = supabase.channel(`messages:${roomId}`)
-    messagesChannelRef.current = channel
-
-    channel
+    const channel = supabase
+      .channel(`messages:${roomId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages" },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages"
+        },
         payload => {
           const m = payload.new as Message
 
@@ -94,11 +106,26 @@ export default function ConversationClient({
 
           if (!relevant) return
 
-          setMessages(prev =>
-            prev.some(p => p.id === m.id)
-              ? prev
-              : [...prev, m]
-          )
+          setMessages(prev => {
+            const optimisticIndex = prev.findIndex(
+              p =>
+                p.optimistic &&
+                p.sender_id === m.sender_id &&
+                p.content === m.content
+            )
+
+            if (optimisticIndex !== -1) {
+              const copy = [...prev]
+              copy[optimisticIndex] = m
+              return sortMessages(copy)
+            }
+
+            if (prev.some(p => p.id === m.id)) {
+              return prev
+            }
+
+            return sortMessages([...prev, m])
+          })
 
           if (m.sender_id === otherUser.id) {
             fetch("/api/messages/read", {
@@ -111,12 +138,18 @@ export default function ConversationClient({
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "messages" },
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages"
+        },
         payload => {
           const updated = payload.new as Message
           setMessages(prev =>
-            prev.map(m =>
-              m.id === updated.id ? updated : m
+            sortMessages(
+              prev.map(m =>
+                m.id === updated.id ? updated : m
+              )
             )
           )
         }
@@ -126,7 +159,7 @@ export default function ConversationClient({
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [supabase, meId, otherUser.id, roomId])
+  }, [meId, otherUser.id, roomId])
 
   /* typing channel */
   useEffect(() => {
@@ -149,9 +182,9 @@ export default function ConversationClient({
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [supabase, otherUser.id, roomId])
+  }, [otherUser.id, roomId])
 
-  async function notifyTyping() {
+  function notifyTyping() {
     typingChannelRef.current?.send({
       type: "broadcast",
       event: "typing",
@@ -159,7 +192,6 @@ export default function ConversationClient({
     })
   }
 
-  /* optimistic UI insert */
   function addOptimisticMessage(content: string) {
     const optimistic: Message = {
       id: crypto.randomUUID(),
@@ -167,10 +199,11 @@ export default function ConversationClient({
       receiver_id: otherUser.id,
       content,
       created_at: new Date().toISOString(),
-      read_at: null
+      read_at: null,
+      optimistic: true
     }
 
-    setMessages(prev => [...prev, optimistic])
+    setMessages(prev => sortMessages([...prev, optimistic]))
   }
 
   async function sendMessage(content: string) {
@@ -199,7 +232,6 @@ export default function ConversationClient({
     <main className="h-screen bg-[#efeae2] flex justify-center">
       <div className="w-full max-w-4xl flex flex-col">
 
-        {/* HEADER */}
         <header className="sticky top-0 z-40 flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-yellow-400 via-yellow-500 to-black">
           <Link href="/messages" className="text-black">
             <ArrowLeft size={20} />
@@ -244,7 +276,6 @@ export default function ConversationClient({
           </div>
         </header>
 
-        {/* MESSAGES */}
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
           {messages.map(m => {
             const isMe = m.sender_id === meId
@@ -262,7 +293,7 @@ export default function ConversationClient({
                 {m.content}
                 <div className="mt-1 flex justify-end gap-1 text-[10px] text-gray-500">
                   <span>{formatTime(m.created_at)}</span>
-                  {isMe && (
+                  {isMe && !m.optimistic && (
                     <span className={isRead ? "text-blue-600" : "text-gray-400"}>
                       ✓✓
                     </span>
@@ -281,7 +312,6 @@ export default function ConversationClient({
           <div ref={bottomRef} />
         </div>
 
-        {/* INPUT BAR */}
         <form
           onSubmit={async e => {
             e.preventDefault()
