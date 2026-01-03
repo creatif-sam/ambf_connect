@@ -1,20 +1,24 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
+import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import { createSupabaseBrowserClient } from "@/lib/supabase/client"
 
-export default function CreateEventPage() {
+export default function EditEventPage() {
   const router = useRouter()
+  const params = useParams()
   const supabase = createSupabaseBrowserClient()
+
+  const eventId = params.eventId as string
 
   const [title, setTitle] = useState("")
   const [slug, setSlug] = useState("")
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
   const [isPublished, setIsPublished] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   function generateSlug(value: string) {
@@ -25,43 +29,84 @@ export default function CreateEventPage() {
       .replace(/(^-|-$)/g, "")
   }
 
+  useEffect(() => {
+    async function loadEvent() {
+      const {
+        data: { user }
+      } = await supabase.auth.getUser()
+
+      if (!user) {
+        setError("Unauthorized")
+        setLoading(false)
+        return
+      }
+
+      const { data, error } = await supabase
+        .from("events")
+        .select(
+          "title, slug, start_date, end_date, is_published, created_by"
+        )
+        .eq("id", eventId)
+        .single()
+
+      if (error || !data) {
+        setError("Event not found")
+        setLoading(false)
+        return
+      }
+
+      if (data.created_by !== user.id) {
+        setError("You do not have permission to edit this event")
+        setLoading(false)
+        return
+      }
+
+      setTitle(data.title)
+      setSlug(data.slug)
+      setStartDate(data.start_date ?? "")
+      setEndDate(data.end_date ?? "")
+      setIsPublished(data.is_published)
+      setLoading(false)
+    }
+
+    loadEvent()
+  }, [eventId, supabase])
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setLoading(true)
+    setSaving(true)
     setError(null)
-
-    const {
-      data: { user }
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      setError("You must be logged in to create an event")
-      setLoading(false)
-      return
-    }
 
     const finalSlug = slug || generateSlug(title)
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("events")
-      .insert({
+      .update({
         title,
         slug: finalSlug,
         start_date: startDate || null,
         end_date: endDate || null,
-        is_published: isPublished,
-        created_by: user.id
+        is_published: isPublished
       })
-      .select("id")
-      .single()
+      .eq("id", eventId)
 
     if (error) {
       setError(error.message)
-      setLoading(false)
+      setSaving(false)
       return
     }
 
-    router.push(`/dashboard/events/${data.id}`)
+    router.push(`/dashboard/events/${eventId}`)
+  }
+
+  if (loading) {
+    return (
+      <main className="p-8">
+        <p className="text-sm text-zinc-500">
+          Loading event…
+        </p>
+      </main>
+    )
   }
 
   return (
@@ -81,18 +126,27 @@ export default function CreateEventPage() {
               </Link>
             </li>
             <li>›</li>
+            <li>
+              <Link
+                href={`/dashboard/events/${eventId}`}
+                className="hover:text-black"
+              >
+                Event
+              </Link>
+            </li>
+            <li>›</li>
             <li className="text-black font-medium">
-              Create event
+              Edit
             </li>
           </ol>
         </nav>
 
         <div>
           <h1 className="text-2xl font-semibold">
-            Create new event
+            Edit event
           </h1>
           <p className="text-sm text-zinc-500">
-            Set up a new event and start managing its content
+            Update event details
           </p>
         </div>
 
@@ -162,10 +216,10 @@ export default function CreateEventPage() {
             />
             <label htmlFor="isPublished" className="text-sm">
               <span className="font-medium">
-                Publish immediately
+                Published
               </span>
               <p className="text-xs text-zinc-500">
-                Unchecked events remain drafts.
+                Controls event visibility.
               </p>
             </label>
           </div>
@@ -178,7 +232,7 @@ export default function CreateEventPage() {
 
           <div className="flex justify-end gap-2">
             <Link
-              href="/dashboard/events"
+              href={`/dashboard/events/${eventId}`}
               className="rounded-md border px-4 py-2"
             >
               Cancel
@@ -186,10 +240,10 @@ export default function CreateEventPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={saving}
               className="rounded-md bg-black px-4 py-2 text-white"
             >
-              {loading ? "Creating…" : "Create event"}
+              {saving ? "Saving…" : "Save changes"}
             </button>
           </div>
         </form>
