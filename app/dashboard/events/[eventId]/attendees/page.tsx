@@ -9,6 +9,16 @@ type PageProps = {
   }>
 }
 
+type AttendeeRow = {
+  id: string
+  created_at: string
+  profiles: {
+    id: string
+    full_name: string | null
+    avatar_url: string | null
+  } | null
+}
+
 export default async function EventAttendeesPage({
   params
 }: PageProps) {
@@ -55,6 +65,8 @@ export default async function EventAttendeesPage({
     throw new Error(error.message)
   }
 
+  const typedAttendees = (attendees || []) as unknown as AttendeeRow[]
+
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-6">
       <div className="mx-auto max-w-6xl space-y-6">
@@ -100,9 +112,7 @@ export default async function EventAttendeesPage({
             Participants registered for {event.title}
           </p>
         </div>
-
-        {/* ================= TABLE ================= */}
-        {attendees.length === 0 ? (
+typedAttendees.length === 0 ? (
           <div className="rounded-md border p-8 text-center text-sm text-zinc-500">
             No attendees registered yet
           </div>
@@ -123,6 +133,8 @@ export default async function EventAttendeesPage({
                 </tr>
               </thead>
 
+              <tbody>
+                {typedA
               <tbody>
                 {attendees.map(item => (
                   <tr
