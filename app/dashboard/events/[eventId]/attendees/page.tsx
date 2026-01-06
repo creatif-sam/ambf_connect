@@ -112,7 +112,9 @@ export default async function EventAttendeesPage({
             Participants registered for {event.title}
           </p>
         </div>
-typedAttendees.length === 0 ? (
+
+        {/* ================= TABLE ================= */}
+        {typedAttendees.length === 0 ? (
           <div className="rounded-md border p-8 text-center text-sm text-zinc-500">
             No attendees registered yet
           </div>
