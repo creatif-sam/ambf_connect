@@ -26,7 +26,7 @@ export default async function PublicProfilePage({
 
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("id, full_name, job_title, company, avatar_url, created_at")
+    .select("id, full_name, job_title, company, avatar_url, bio, created_at")
     .eq("id", userId)
     .single()
 
@@ -114,6 +114,18 @@ export default async function PublicProfilePage({
           </p>
         </div>
       </section>
+
+      {/* Bio */}
+      {profile.bio && (
+        <section className="border rounded-xl p-6 bg-white space-y-2">
+          <p className="font-medium">
+            Bio
+          </p>
+          <p className="text-sm text-gray-600 leading-relaxed">
+            {profile.bio}
+          </p>
+        </section>
+      )}
 
       {/* About */}
       <section className="border rounded-xl p-6 bg-white space-y-2">

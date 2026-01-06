@@ -11,6 +11,9 @@ export default function RegisterPage() {
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [fullName, setFullName] = useState("")
+  const [jobTitle, setJobTitle] = useState("")
+  const [company, setCompany] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -19,7 +22,11 @@ export default function RegisterPage() {
     setLoading(true)
     setError(null)
 
-    const { error } = await signUp(email, password)
+    const { error } = await signUp(email, password, {
+      full_name: fullName,
+      job_title: jobTitle,
+      company: company
+    })
 
     if (error) {
       setError(error.message)
@@ -39,6 +46,15 @@ export default function RegisterPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <input
+            type="text"
+            placeholder="Full Name"
+            required
+            className="w-full border rounded-lg px-4 py-3"
+            value={fullName}
+            onChange={e => setFullName(e.target.value)}
+          />
+
+          <input
             type="email"
             placeholder="Email address"
             required
@@ -54,6 +70,24 @@ export default function RegisterPage() {
             className="w-full border rounded-lg px-4 py-3"
             value={password}
             onChange={e => setPassword(e.target.value)}
+          />
+
+          <input
+            type="text"
+            placeholder="Job Title"
+            required
+            className="w-full border rounded-lg px-4 py-3"
+            value={jobTitle}
+            onChange={e => setJobTitle(e.target.value)}
+          />
+
+          <input
+            type="text"
+            placeholder="Company"
+            required
+            className="w-full border rounded-lg px-4 py-3"
+            value={company}
+            onChange={e => setCompany(e.target.value)}
           />
 
           {error && (

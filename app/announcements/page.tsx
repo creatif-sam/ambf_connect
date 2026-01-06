@@ -5,7 +5,7 @@ import {
   BadgeCheck
 } from "lucide-react"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
-import EventHubTabs from "@/components/EventHubTabs"
+import EventHubClient from "./EventHubClient"
 
 export const dynamic = "force-dynamic"
 
@@ -79,6 +79,23 @@ export default async function AnnouncementsPage() {
 
   const eventIds = memberships?.map(m => m.event_id) ?? []
 
+  // Only fetch if user has events
+  if (eventIds.length === 0) {
+    return (
+      <main className="max-w-3xl mx-auto px-4 pb-24">
+        <h1 className="text-2xl font-semibold text-white pt-4 pb-3">
+          Event Hub
+        </h1>
+        <div className="text-center py-12">
+          <p className="text-gray-500 mb-2">You're not registered for any events yet</p>
+          <p className="text-sm text-gray-600">
+            Join an event to see announcements and agenda
+          </p>
+        </div>
+      </main>
+    )
+  }
+
   const { data: announcements } = await supabase
     .from("announcements")
     .select(`
@@ -86,60 +103,32 @@ export default async function AnnouncementsPage() {
       title,
       body,
       created_at,
-      events ( id, title )
+      event_id
     `)
     .in("event_id", eventIds)
     .order("created_at", { ascending: false })
 
+  // Fetch all sessions for user's events
+  const { data: sessions } = await supabase
+    .from("sessions")
+    .select(`
+      id,
+      title,
+      start_time,
+      end_time,
+      day,
+      session_type,
+      event_id
+    `)
+    .in("event_id", eventIds)
+    .eq("is_published", true)
+    .order("day", { ascending: true })
+    .order("start_time", { ascending: true })
+
   return (
-    <main className="max-w-3xl mx-auto px-4 pb-24">
-      <h1 className="text-2xl font-semibold text-white pt-4 pb-3">
-        Event Hub
-      </h1>
-
-      {/* Sticky tabs */}
-      <EventHubTabs
-        announcementsCount={announcements?.length ?? 0}
-      />
-
-      {/* Announcements list */}
-      <div className="pt-6 space-y-4">
-        {!announcements || announcements.length === 0 ? (
-          <p className="text-gray-500">No announcements yet.</p>
-        ) : (
-          announcements.map(a => (
-            <div
-              key={a.id}
-              className="
-                rounded-xl p-5
-                bg-gradient-to-br from-black to-zinc-900
-                border border-yellow-500/20
-                hover:border-yellow-500/40
-                transition
-              "
-            >
-              <div className="flex justify-between items-start mb-2">
-                <h2 className="font-medium text-lg text-white">
-                  {a.title}
-                </h2>
-                <span className="text-xs text-gray-400">
-                  {new Date(a.created_at).toLocaleDateString()}
-                </span>
-              </div>
-
-              {a.events && a.events.length > 0 && (
-                <p className="text-sm text-yellow-500 mb-2">
-                  {a.events[0].title}
-                </p>
-              )}
-
-              <p className="text-gray-300 leading-relaxed">
-                {a.body}
-              </p>
-            </div>
-          ))
-        )}
-      </div>
-    </main>
+    <EventHubClient
+      announcements={announcements ?? []}
+      sessions={sessions ?? []}
+    />
   )
 }

@@ -229,137 +229,156 @@ export default function ConversationClient({
   }
 
   return (
-    <main className="h-screen bg-[#efeae2] flex justify-center">
-      <div className="w-full max-w-4xl flex flex-col">
+    <div className="flex-1 flex flex-col h-full bg-[#efeae2]">
+      {/* Header */}
+      <header className="flex items-center gap-3 px-4 py-3 bg-[#f0f2f5] border-b border-gray-200">
+        <Link href="/messages" className="text-gray-700 hover:text-gray-900 transition">
+          <ArrowLeft size={20} />
+        </Link>
 
-        <header className="sticky top-0 z-40 flex items-center gap-3 px-4 py-3 bg-gradient-to-r from-yellow-400 via-yellow-500 to-black">
-          <Link href="/messages" className="text-black">
-            <ArrowLeft size={20} />
-          </Link>
+        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 overflow-hidden flex items-center justify-center text-white font-semibold flex-shrink-0">
+          {otherUser.avatar_url ? (
+            <img
+              src={otherUser.avatar_url}
+              alt=""
+              className="h-full w-full object-cover"
+            />
+          ) : (
+            <span className="text-lg">
+              {otherUser.full_name.charAt(0).toUpperCase()}
+            </span>
+          )}
+        </div>
 
-          <div className="h-9 w-9 rounded-full bg-black/20 overflow-hidden">
-            {otherUser.avatar_url && (
-              <img
-                src={otherUser.avatar_url}
-                alt=""
-                className="h-full w-full object-cover"
-              />
-            )}
-          </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-gray-900 truncate">
+            {otherUser.full_name}
+          </p>
 
-          <div className="flex flex-col leading-tight">
-            <p className="font-semibold text-sm text-white">
-              {otherUser.full_name}
-            </p>
+          {online ? (
+            <span className="text-xs text-green-600 font-medium">
+              Online
+            </span>
+          ) : isTyping ? (
+            <span className="text-xs text-yellow-600 font-medium">
+              typing…
+            </span>
+          ) : lastSeen ? (
+            <span className="text-xs text-gray-500">
+              Last seen{" "}
+              {new Date(lastSeen).toLocaleTimeString("en-US", {
+                hour: "numeric",
+                minute: "2-digit"
+              })}
+            </span>
+          ) : (
+            <span className="text-xs text-gray-500">
+              Offline
+            </span>
+          )}
+        </div>
+      </header>
 
-            {online ? (
-              <span className="text-xs text-black font-medium">
-                Online
-              </span>
-            ) : isTyping ? (
-              <span className="text-xs text-black font-medium">
-                typing…
-              </span>
-            ) : lastSeen ? (
-              <span className="text-xs text-black/70">
-                Last seen{" "}
-                {new Date(lastSeen).toLocaleTimeString("en-GB", {
-                  hour: "2-digit",
-                  minute: "2-digit"
-                })}
-              </span>
-            ) : (
-              <span className="text-xs text-black/70">
-                Offline
-              </span>
-            )}
-          </div>
-        </header>
+      {/* Messages Area */}
+      <div 
+        className="flex-1 overflow-y-auto px-4 md:px-16 py-4 space-y-1"
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23d9d9d9' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+        }}
+      >
+        {messages.map(m => {
+          const isMe = m.sender_id === meId
+          const isRead = !!m.read_at
 
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
-          {messages.map(m => {
-            const isMe = m.sender_id === meId
-            const isRead = !!m.read_at
-
-            return (
+          return (
+            <div
+              key={m.id}
+              className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+            >
               <div
-                key={m.id}
-                className={`max-w-[75%] px-3 py-2 rounded-lg text-sm ${
+                className={`max-w-[75%] md:max-w-[65%] px-3 py-2 rounded-lg text-sm shadow-sm ${
                   isMe
-                    ? "ml-auto bg-[#dcf8c6]"
-                    : "mr-auto bg-white"
+                    ? "bg-[#dcf8c6] rounded-br-none"
+                    : "bg-white rounded-bl-none"
                 }`}
               >
-                {m.content}
-                <div className="mt-1 flex justify-end gap-1 text-[10px] text-gray-500">
+                <p className="break-words">{m.content}</p>
+                <div className="mt-1 flex justify-end items-center gap-1 text-[10px] text-gray-500">
                   <span>{formatTime(m.created_at)}</span>
                   {isMe && !m.optimistic && (
-                    <span className={isRead ? "text-blue-600" : "text-gray-400"}>
-                      ✓✓
+                    <span className={isRead ? "text-blue-500" : "text-gray-400"}>
+                      {isRead ? "✓✓" : "✓"}
                     </span>
                   )}
                 </div>
               </div>
-            )
-          })}
-
-          {isTyping && (
-            <div className="mr-auto bg-white px-3 py-2 rounded-lg text-sm text-gray-500 w-fit">
-              typing…
             </div>
-          )}
+          )
+        })}
 
-          <div ref={bottomRef} />
-        </div>
-
-        <form
-          onSubmit={async e => {
-            e.preventDefault()
-            if (!inputRef.current) return
-            const value = inputRef.current.value
-            inputRef.current.value = ""
-            await sendMessage(value)
-          }}
-          className="relative flex items-center gap-2 px-3 py-2 bg-[#f0f0f0]"
-        >
-          <button
-            type="button"
-            onClick={() => setShowEmoji(v => !v)}
-            className="text-gray-600"
-          >
-            <Smile size={20} />
-          </button>
-
-          <input
-            ref={inputRef}
-            placeholder="Type a message"
-            onChange={notifyTyping}
-            className="flex-1 rounded-full px-4 py-2 text-sm border outline-none"
-          />
-
-          <button
-            type="submit"
-            className="h-10 w-10 flex items-center justify-center rounded-full bg-gradient-to-r from-yellow-400 via-yellow-500 to-black text-black"
-          >
-            <Send size={18} />
-          </button>
-
-          {showEmoji && (
-            <div className="absolute bottom-14 left-4 bg-white rounded-lg shadow p-2 grid grid-cols-5 gap-2">
-              {EMOJIS.map(e => (
-                <button
-                  key={e}
-                  onClick={() => insertEmoji(e)}
-                  className="text-xl hover:scale-110 transition"
-                >
-                  {e}
-                </button>
-              ))}
+        {isTyping && (
+          <div className="flex justify-start">
+            <div className="bg-white px-4 py-2 rounded-lg rounded-bl-none text-sm text-gray-500 shadow-sm">
+              <div className="flex gap-1">
+                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
+                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
+                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }}></span>
+              </div>
             </div>
-          )}
-        </form>
+          </div>
+        )}
 
+        <div ref={bottomRef} />
       </div>
-    </main>
+
+      {/* Input Area */}
+      <form
+        onSubmit={async e => {
+          e.preventDefault()
+          if (!inputRef.current) return
+          const value = inputRef.current.value
+          inputRef.current.value = ""
+          await sendMessage(value)
+        }}
+        className="relative flex items-center gap-2 px-4 py-3 bg-[#f0f2f5] border-t border-gray-200"
+      >
+        <button
+          type="button"
+          onClick={() => setShowEmoji(v => !v)}
+          className="text-gray-600 hover:text-gray-800 transition"
+        >
+          <Smile size={22} />
+        </button>
+
+        <input
+          ref={inputRef}
+          placeholder="Type a message"
+          onChange={notifyTyping}
+          className="flex-1 rounded-full px-4 py-2.5 text-sm bg-white border-0 outline-none focus:ring-2 focus:ring-yellow-400 transition"
+        />
+
+        <button
+          type="submit"
+          className="h-10 w-10 flex items-center justify-center rounded-full bg-yellow-500 hover:bg-yellow-600 text-white transition shadow-sm"
+        >
+          <Send size={18} />
+        </button>
+
+        {showEmoji && (
+          <div className="absolute bottom-16 left-4 bg-white rounded-lg shadow-lg p-3 grid grid-cols-5 gap-2 border border-gray-200">
+            {EMOJIS.map(e => (
+              <button
+                key={e}
+                type="button"
+                onClick={() => insertEmoji(e)}
+                className="text-2xl hover:scale-125 transition p-1"
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+        )}
+      </form>
+    </div>
   )
 }

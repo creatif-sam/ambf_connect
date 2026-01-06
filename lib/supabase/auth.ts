@@ -9,12 +9,23 @@ export async function signIn(email: string, password: string) {
   })
 }
 
-export async function signUp(email: string, password: string) {
+export async function signUp(
+  email: string,
+  password: string,
+  profile?: {
+    full_name?: string
+    job_title?: string
+    company?: string
+  }
+) {
   const supabase = createSupabaseBrowserClient()
 
   return supabase.auth.signUp({
     email,
-    password
+    password,
+    options: {
+      data: profile || {}
+    }
   })
 }
 

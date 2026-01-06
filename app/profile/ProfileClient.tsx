@@ -114,6 +114,18 @@ export default function ProfileClient({
         }}
       />
 
+      {/* Bio Section */}
+      {!editing && profile?.bio && (
+        <section className="border rounded-xl p-6 bg-white space-y-2">
+          <p className="font-medium">
+            Bio
+          </p>
+          <p className="text-sm text-gray-600 leading-relaxed">
+            {profile.bio}
+          </p>
+        </section>
+      )}
+
       {/* Edit profile */}
       <section className="border rounded-xl p-6 bg-white space-y-4">
         <div className="flex justify-between items-center">
@@ -163,6 +175,23 @@ export default function ProfileClient({
                 defaultValue={profile?.company ?? ""}
                 className="mt-1 w-full border rounded-md px-3 py-2"
               />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">
+                Bio <span className="text-xs text-gray-500">(max 100 words)</span>
+              </label>
+              <textarea
+                name="bio"
+                defaultValue={profile?.bio ?? ""}
+                rows={4}
+                maxLength={800}
+                placeholder="Tell us about yourself..."
+                className="mt-1 w-full border rounded-md px-3 py-2 resize-none"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {profile?.bio ? profile.bio.trim().split(/\s+/).length : 0} / 100 words
+              </p>
             </div>
 
             <button

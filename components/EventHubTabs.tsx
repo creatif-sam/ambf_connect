@@ -11,33 +11,28 @@ import EmergencyCallModal from "@/components/EmergencyCallModal"
 
 type Props = {
   announcementsCount: number
+  activeTab?: string
+  onTabChange?: (tab: string) => void
 }
 
-export default function EventHubTabs({ announcementsCount }: Props) {
+export default function EventHubTabs({ 
+  announcementsCount, 
+  activeTab = "announcements",
+  onTabChange 
+}: Props) {
   const [emergencyOpen, setEmergencyOpen] = useState(false)
 
   const tabs = [
     {
+      id: "announcements",
       label: "Announcements",
       icon: Megaphone,
-      active: true,
       badge: announcementsCount
     },
     {
+      id: "agenda",
       label: "Agenda",
-      icon: Calendar,
-      badge: 3
-    },
-    {
-      label: "Sessions",
-      icon: LayoutList,
-      badge: 5
-    },
-    {
-      label: "Emergency",
-      icon: Phone,
-      badge: 1,
-      onClick: () => setEmergencyOpen(true)
+      icon: Calendar
     }
   ]
 
@@ -48,17 +43,18 @@ export default function EventHubTabs({ announcementsCount }: Props) {
         <div className="flex gap-2 overflow-x-auto py-3">
           {tabs.map(tab => {
             const Icon = tab.icon
+            const isActive = activeTab === tab.id
 
             return (
               <button
-                key={tab.label}
-                onClick={tab.onClick}
+                key={tab.id}
+                onClick={() => onTabChange?.(tab.id)}
                 className={`
                   relative flex items-center gap-2
                   px-4 py-2 rounded-full text-sm font-medium
                   whitespace-nowrap transition
                   ${
-                    tab.active
+                    isActive
                       ? "bg-gradient-to-r from-yellow-400 to-yellow-600 text-black"
                       : "bg-zinc-900 text-gray-400 hover:text-yellow-400"
                   }
@@ -67,7 +63,7 @@ export default function EventHubTabs({ announcementsCount }: Props) {
                 <Icon className="h-4 w-4" />
                 {tab.label}
 
-                {tab.badge > 0 && (
+                {tab.badge && tab.badge > 0 && (
                   <span className="
                     absolute -top-1 -right-1
                     h-5 min-w-[20px] px-1
@@ -81,6 +77,20 @@ export default function EventHubTabs({ announcementsCount }: Props) {
               </button>
             )
           })}
+          
+          {/* Emergency button separate */}
+          <button
+            onClick={() => setEmergencyOpen(true)}
+            className="
+              relative flex items-center gap-2
+              px-4 py-2 rounded-full text-sm font-medium
+              whitespace-nowrap transition
+              bg-red-600 text-white hover:bg-red-700
+            "
+          >
+            <Phone className="h-4 w-4" />
+            Emergency
+          </button>
         </div>
       </div>
 

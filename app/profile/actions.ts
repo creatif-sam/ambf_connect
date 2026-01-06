@@ -23,7 +23,8 @@ export async function updateProfile(formData: FormData) {
     .update({
       full_name: formData.get("full_name"),
       job_title: formData.get("job_title"),
-      company: formData.get("company")
+      company: formData.get("company"),
+      bio: formData.get("bio")
     })
     .eq("id", user.id)
 
