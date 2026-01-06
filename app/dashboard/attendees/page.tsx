@@ -41,7 +41,7 @@ export default function AttendeesPage() {
         .order("created_at", { ascending: false })
 
       if (!error && data) {
-        setAttendees(data)
+        setAttendees(data as AttendeeRow[])
       }
 
       setLoading(false)
