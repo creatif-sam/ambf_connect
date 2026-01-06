@@ -84,10 +84,15 @@ export async function POST(req: NextRequest) {
     // If approved, send email notification
     if (action === "approve" && profile.email) {
       try {
-        // Try using local API route first (easier setup, no Edge Function needed)
-        console.log("Attempting to send approval email to:", profile.email)
+        // Determine the base URL
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 
+                       (req.headers.get('origin') || 
+                       `http://localhost:${process.env.PORT || 3000}`)
         
-        const emailResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/send-approval-email`, {
+        console.log("Attempting to send approval email to:", profile.email)
+        console.log("Using base URL:", baseUrl)
+        
+        const emailResponse = await fetch(`${baseUrl}/api/send-approval-email`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"

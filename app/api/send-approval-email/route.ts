@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
         to: [userEmail],
-        subject: "Welcome to AMBF Connect - Your account has been approved!",
+        subject: "Welcome to Africamed Connect - Your account has been approved!",
         html: `
           <!DOCTYPE html>
           <html>
@@ -40,14 +40,14 @@ export async function POST(req: NextRequest) {
             </head>
             <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
               <div style="background: linear-gradient(135deg, #000000 0%, #1a1a1a 100%); color: white; padding: 30px; border-radius: 8px 8px 0 0; text-align: center;">
-                <h1 style="margin: 0; font-size: 24px;">🎉 Welcome to AMBF Connect!</h1>
+                <h1 style="margin: 0; font-size: 24px;">🎉 Welcome to Africamed Connect!</h1>
               </div>
               
               <div style="background: #ffffff; padding: 30px; border: 1px solid #e5e7eb; border-top: none; border-radius: 0 0 8px 8px;">
                 <p style="font-size: 16px; margin-top: 0;">Hi ${userName || "there"},</p>
                 
                 <p style="font-size: 16px;">
-                  Great news! Your AMBF Connect account has been approved. You now have full access to the platform.
+                  Great news! Your Africamed Connect account has been approved. You now have full access to the African and Mediterranean business forum platform organized by Kardev.
                 </p>
                 
                 <p style="font-size: 16px;">
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
                 
                 <ul style="font-size: 16px; color: #555;">
                   <li>Browse and join upcoming events</li>
-                  <li>Connect with other professionals in your field</li>
+                  <li>Connect with business leaders and professionals</li>
                   <li>Access event agendas and session details</li>
                   <li>Network with attendees through direct messaging</li>
                   <li>Stay updated with real-time announcements</li>
@@ -71,12 +71,13 @@ export async function POST(req: NextRequest) {
                 
                 <p style="font-size: 14px; color: #666; margin-bottom: 0;">
                   Welcome aboard!<br>
-                  The AMBF Connect Team
+                  The Africamed Connect Team
                 </p>
               </div>
               
               <div style="text-align: center; padding: 20px; color: #999; font-size: 12px;">
-                <p>© 2026 AMBF Connect. All rights reserved.</p>
+                <p>© 2026 Africamed Connect. All rights reserved.</p>
+                <p style="margin-top: 5px;">Need help? Contact <a href="mailto:it-support@africamedforum.com" style="color: #666;">it-support@africamedforum.com</a></p>
               </div>
             </body>
           </html>
