@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { Clock, Mail } from "lucide-react"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { logoutAction } from "@/app/profile/actions"
 
 export default async function PendingApprovalPage() {
   const supabase = await createSupabaseServerClient()
@@ -51,7 +52,7 @@ export default async function PendingApprovalPage() {
               been approved.
             </p>
             <p className="text-sm text-zinc-700">
-              This usually takes 24-48 hours. We appreciate your patience!
+              This usually takes 6-24 hours. We appreciate your patience!
             </p>
           </div>
 
@@ -62,10 +63,10 @@ export default async function PendingApprovalPage() {
           </div>
 
           {/* Logout Button */}
-          <form action="/auth/logout" method="post" className="pt-4">
+          <form action={logoutAction} className="pt-4">
             <button
               type="submit"
-              className="w-full px-4 py-2 border border-zinc-300 rounded-lg text-sm font-medium text-zinc-700 hover:bg-zinc-50 transition"
+              className="w-full px-4 py-2 rounded-lg text-sm font-medium bg-gradient-to-r from-yellow-400 to-yellow-600 text-black hover:from-yellow-500 hover:to-yellow-700 transition"
             >
               Sign Out
             </button>
@@ -76,10 +77,10 @@ export default async function PendingApprovalPage() {
         <p className="text-center text-sm text-zinc-500 mt-6">
           Questions? Contact us at{" "}
           <a
-            href="mailto:support@ambfconnect.com"
+            href="mailto:it-support@africamedforum.com"
             className="text-zinc-700 hover:underline"
           >
-            support@ambfconnect.com
+            it-support@africamedforum.com
           </a>
         </p>
       </div>

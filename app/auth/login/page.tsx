@@ -61,7 +61,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2">
+    <div className="h-screen overflow-hidden grid grid-cols-1 md:grid-cols-2">
       {/* Brand panel */}
       <div className="hidden md:flex flex-col justify-center items-center bg-gradient-to-br from-black via-zinc-900 to-zinc-800 text-white px-12">
         <h1 className="text-4xl font-bold mb-4">
@@ -75,8 +75,8 @@ export default function LoginPage() {
       </div>
 
       {/* Login panel */}
-      <div className="flex flex-col justify-center px-6 md:px-16 bg-white">
-        <div className="max-w-md w-full mx-auto space-y-6">
+      <div className="h-screen overflow-y-auto flex flex-col justify-center px-6 md:px-16 bg-white">
+        <div className="max-w-md w-full mx-auto space-y-6 py-8">
           <header className="space-y-2">
             <h2 className="text-3xl font-semibold">
               Sign in
