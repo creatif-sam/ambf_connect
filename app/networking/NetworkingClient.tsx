@@ -14,6 +14,7 @@ type Props = {
   received: any[]
   sent: any[]
   profiles: any[]
+  allAttendees: any[]
   events: any[]
   mutualPreviewMap: Record<
     string,
@@ -29,14 +30,15 @@ export default function NetworkingClient({
   received,
   sent,
   profiles,
+  allAttendees,
   events,
   mutualPreviewMap,
   onAccept,
   onReject
 }: Props) {
   const [tab, setTab] = useState<
-    "recommended" | "connections" | "received" | "sent"
-  >("recommended")
+    "allAttendees" | "connections" | "received" | "sent"
+  >("allAttendees")
 
   const [toast, setToast] = useState<{
     type: "success" | "error"
@@ -219,7 +221,7 @@ export default function NetworkingClient({
       )}
 
       <div className="flex gap-6 border-b">
-        {["recommended", "connections", "received", "sent"].map(t => (
+        {["allAttendees", "connections", "received", "sent"].map(t => (
           <button
             key={t}
             onClick={() => setTab(t as any)}
@@ -229,7 +231,7 @@ export default function NetworkingClient({
                 : "text-gray-500"
             }`}
           >
-            {t === "received" ? "Requests" : t.charAt(0).toUpperCase() + t.slice(1)}
+            {t === "allAttendees" ? "All Attendees" : t === "received" ? "Requests" : t.charAt(0).toUpperCase() + t.slice(1)}
             {t === "received" && received.length > 0 && (
               <span className="ml-1 text-xs bg-red-500 text-white rounded-full px-1.5">
                 {received.length}
@@ -239,10 +241,60 @@ export default function NetworkingClient({
         ))}
       </div>
 
-      {tab === "recommended" &&
-        renderCards(connections, r =>
-          r.sender_id === userId ? r.receiver_id : r.sender_id
-        )}
+      {tab === "allAttendees" && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {allAttendees.length === 0 ? (
+            <p className="text-sm text-gray-500 col-span-full">No attendees found</p>
+          ) : (
+            allAttendees.map(profile => (
+              <div
+                key={profile.id}
+                className="rounded-xl bg-white p-4 shadow-sm"
+              >
+                <Link href={`/profiles/${profile.id}`}>
+                  <div className="flex items-center gap-3 cursor-pointer">
+                    <div className="h-12 w-12 rounded-full bg-gray-200 overflow-hidden">
+                      {profile.avatar_url && (
+                        <img
+                          src={profile.avatar_url}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      )}
+                    </div>
+
+                    <div className="flex-1">
+                      <p className="font-medium">
+                        {profile.full_name ?? "Unknown"}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {[profile.job_title, profile.company]
+                          .filter(Boolean)
+                          .join(" • ")}
+                      </p>
+                    </div>
+                  </div>
+                </Link>
+
+                <div className="mt-3">
+                  <Link
+                    href={`/messages/${profile.id}`}
+                    className="
+                      w-full inline-flex items-center justify-center gap-1
+                      py-1.5 rounded-md text-xs font-medium
+                      bg-gradient-to-r from-yellow-400 via-yellow-500 to-black
+                      text-black hover:opacity-90 transition
+                    "
+                  >
+                    <MessageCircle size={14} />
+                    Message
+                  </Link>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
 
       {tab === "connections" &&
         renderCards(connections, r =>

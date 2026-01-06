@@ -110,6 +110,14 @@ export default async function NetworkingPage() {
     .select("id, full_name, avatar_url, job_title, company")
     .in("id", userIds)
 
+  // Fetch all approved attendees for "All Attendees" tab
+  const { data: allAttendees } = await supabase
+    .from("profiles")
+    .select("id, full_name, avatar_url, job_title, company")
+    .eq("status", "approved")
+    .neq("id", user.id) // Exclude current user
+    .order("full_name", { ascending: true })
+
   const eventIds = Array.from(new Set(requests.map(r => r.event_id)))
 
   const { data: events } = await supabase
@@ -124,6 +132,7 @@ export default async function NetworkingPage() {
       received={received}
       sent={sent}
       profiles={profiles ?? []}
+      allAttendees={allAttendees ?? []}
       events={events ?? []}
       mutualPreviewMap={mutualPreviewMap}
       onAccept={acceptRequest}

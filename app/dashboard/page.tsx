@@ -12,6 +12,10 @@ import { getPendingUsers } from "@/lib/queries/pendingMembers"
 import EventsList from "@/components/EventsList"
 import PendingUsersList from "@/components/PendingMembersList"
 
+// Force dynamic rendering - no caching
+export const dynamic = "force-dynamic"
+export const revalidate = 0
+
 export default async function DashboardPage() {
   const supabase = await createSupabaseServerClient()
 

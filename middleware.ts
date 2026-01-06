@@ -39,16 +39,22 @@ export async function middleware(request: NextRequest) {
   // If user is logged in, check their status
   if (user) {
     try {
-      const { data: profile } = await supabase
+      // Fetch profile with no cache to ensure fresh data
+      const { data: profile, error } = await supabase
         .from("profiles")
         .select("status")
         .eq("id", user.id)
         .single()
 
+      if (error) {
+        console.error("Profile fetch error:", error)
+      }
+
       // If user is pending and trying to access protected routes, redirect to pending page
       if (
         profile?.status === "pending" &&
         !request.nextUrl.pathname.startsWith("/auth") &&
+        !request.nextUrl.pathname.startsWith("/api") &&
         request.nextUrl.pathname !== "/pending-approval"
       ) {
         return NextResponse.redirect(
@@ -63,9 +69,19 @@ export async function middleware(request: NextRequest) {
       ) {
         return NextResponse.redirect(new URL("/", request.url))
       }
+
+      // If user is rejected, redirect to login
+      if (
+        profile?.status === "rejected" &&
+        !request.nextUrl.pathname.startsWith("/auth")
+      ) {
+        // Clear session and redirect to login
+        await supabase.auth.signOut()
+        return NextResponse.redirect(new URL("/auth/login", request.url))
+      }
     } catch (error) {
       // If status column doesn't exist yet, allow access (migration not run)
-      console.log("Status check skipped - column may not exist yet")
+      console.log("Status check skipped:", error)
     }
   }
 

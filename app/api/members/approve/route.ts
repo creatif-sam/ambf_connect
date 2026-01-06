@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { throwServerError } from "@/lib/utils/throwServerError"
+import { revalidatePath } from "next/cache"
+import { createClient } from "@supabase/supabase-js"
 
 export async function POST(req: NextRequest) {
   try {
@@ -32,7 +34,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify the current user is an organizer
-    const { data: membership } = await supabase
+    const { data: membership, error: membershipError } = await supabase
       .from("event_members")
       .select("role")
       .eq("user_id", user.id)
@@ -40,9 +42,30 @@ export async function POST(req: NextRequest) {
       .limit(1)
       .single()
 
+    console.log("Organizer check for user:", user.id)
+    console.log("Membership data:", membership)
+    console.log("Membership error:", membershipError)
+
     if (!membership) {
+      // Check if user has any event_member record at all
+      const { data: anyMembership } = await supabase
+        .from("event_members")
+        .select("role")
+        .eq("user_id", user.id)
+        .limit(1)
+        .single()
+
+      console.log("Any membership found:", anyMembership)
+
       return NextResponse.json(
-        { error: "Only organizers can approve users" },
+        { 
+          error: "Only organizers can approve users. Please ensure you are added as an organizer in at least one event.",
+          debug: {
+            userId: user.id,
+            hasMembership: !!anyMembership,
+            role: anyMembership?.role
+          }
+        },
         { status: 403 }
       )
     }
@@ -71,15 +94,45 @@ export async function POST(req: NextRequest) {
 
     const newStatus = action === "approve" ? "approved" : "rejected"
 
-    // Update the user status
-    const { error: updateError } = await supabase
+    console.log(`Updating user ${userId} status from ${profile.status} to ${newStatus}`)
+
+    // Create admin client with service role to bypass RLS
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+
+    // Update the user status using admin client
+    const { data: updateData, error: updateError } = await supabaseAdmin
       .from("profiles")
       .update({ status: newStatus })
       .eq("id", userId)
+      .select()
 
     if (updateError) {
+      console.error("Update error:", updateError)
       throwServerError(updateError)
     }
+
+    console.log("Update successful:", updateData)
+
+    // Verify the update
+    const { data: verifyProfile } = await supabaseAdmin
+      .from("profiles")
+      .select("status")
+      .eq("id", userId)
+      .single()
+
+    console.log("Verified status after update:", verifyProfile?.status)
+
+    // Revalidate the dashboard to update the pending users list
+    revalidatePath("/dashboard")
 
     // If approved, send email notification
     if (action === "approve" && profile.email) {

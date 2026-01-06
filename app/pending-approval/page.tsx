@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { Clock, Mail } from "lucide-react"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { logoutAction } from "@/app/profile/actions"
+import StatusChecker from "./StatusChecker"
 
 export default async function PendingApprovalPage() {
   const supabase = await createSupabaseServerClient()
@@ -27,6 +28,7 @@ export default async function PendingApprovalPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-50 to-zinc-100 p-4">
+      <StatusChecker />
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl shadow-xl p-8 text-center space-y-6">
           {/* Icon */}
