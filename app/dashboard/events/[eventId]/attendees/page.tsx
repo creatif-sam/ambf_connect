@@ -134,9 +134,7 @@ typedAttendees.length === 0 ? (
               </thead>
 
               <tbody>
-                {typedA
-              <tbody>
-                {attendees.map(item => (
+                {typedAttendees.map(item => (
                   <tr
                     key={item.id}
                     className="border-t"
