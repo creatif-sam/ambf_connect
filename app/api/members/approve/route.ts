@@ -3,6 +3,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { throwServerError } from "@/lib/utils/throwServerError"
 import { revalidatePath } from "next/cache"
 import { createClient } from "@supabase/supabase-js"
+import { createNotification } from "@/lib/utils/createNotification"
 
 export async function POST(req: NextRequest) {
   try {
@@ -133,6 +134,17 @@ export async function POST(req: NextRequest) {
 
     // Revalidate the dashboard to update the pending users list
     revalidatePath("/dashboard")
+
+    // Create notification for approved user
+    if (action === "approve") {
+      await createNotification({
+        userId,
+        type: "system",
+        title: "Account Approved! 🎉",
+        message: "Your Africamed Connect account has been approved. You now have full access to all features.",
+        link: "/events"
+      })
+    }
 
     // If approved, send email notification
     if (action === "approve" && profile.email) {

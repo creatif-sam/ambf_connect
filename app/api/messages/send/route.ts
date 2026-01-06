@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { createClient } from "@supabase/supabase-js"
+import { createNotification } from "@/lib/utils/createNotification"
 
 export async function POST(req: Request) {
   const supabase = await createSupabaseServerClient()
@@ -63,7 +65,18 @@ export async function POST(req: Request) {
     "New message"
 
   /* =========================
-     3. TRIGGER PUSH (NON BLOCKING)
+     3. CREATE BELL NOTIFICATION
+     ========================= */
+  await createNotification({
+    userId: receiverId,
+    type: "message",
+    title: `New message from ${senderName}`,
+    message: content.substring(0, 100) + (content.length > 100 ? "..." : ""),
+    link: `/messages/${user.id}`
+  })
+
+  /* =========================
+     4. TRIGGER PUSH (NON BLOCKING)
      ========================= */
   try {
     await fetch(
