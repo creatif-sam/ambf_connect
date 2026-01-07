@@ -32,13 +32,11 @@ export default function ConferenceCard({ profile, onClose }: ConferenceCardProps
       
       // Generate canvas with higher quality
       const canvas = await html2canvas(cardRef.current, {
-        background: "#ffffff",
-        scale: 3, // Higher resolution
+        scale: 3,
         logging: false,
         useCORS: true,
-        allowTaint: true,
-        imageTimeout: 0
-      })
+        allowTaint: true
+      } as any)
 
       // Convert to blob and download
       canvas.toBlob((blob: Blob | null) => {
