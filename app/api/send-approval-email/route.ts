@@ -4,9 +4,20 @@ const RESEND_API_KEY = process.env.RESEND_API_KEY
 
 export async function POST(req: NextRequest) {
   try {
+    console.log("[send-approval-email] Starting email send process...")
+    console.log("[send-approval-email] Environment check:", {
+      hasResendKey: !!RESEND_API_KEY,
+      hasFromEmail: !!process.env.RESEND_FROM_EMAIL,
+      hasAppUrl: !!process.env.NEXT_PUBLIC_APP_URL,
+      fromEmail: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
+      appUrl: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+    })
+    
     const { userEmail, userName } = await req.json()
+    console.log("[send-approval-email] Request body:", { userEmail, userName })
 
     if (!userEmail) {
+      console.error("[send-approval-email] Missing userEmail in request")
       return NextResponse.json(
         { error: "Missing userEmail" },
         { status: 400 }
@@ -14,13 +25,21 @@ export async function POST(req: NextRequest) {
     }
 
     if (!RESEND_API_KEY) {
+      console.error("[send-approval-email] RESEND_API_KEY not configured")
       return NextResponse.json(
-        { error: "RESEND_API_KEY not configured in environment" },
+        { error: "RESEND_API_KEY not configured in environment. Please add it to Vercel environment variables." },
         { status: 500 }
       )
     }
 
     // Send email using Resend
+    console.log("[send-approval-email] Calling Resend API...")
+    const emailPayload = {
+      from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
+      to: [userEmail],
+    }
+    console.log("[send-approval-email] Email payload:", emailPayload)
+    
     const emailRes = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -28,8 +47,8 @@ export async function POST(req: NextRequest) {
         Authorization: `Bearer ${RESEND_API_KEY}`
       },
       body: JSON.stringify({
-        from: process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev",
-        to: [userEmail],
+        from: emailPayload.from,
+        to: emailPayload.to,
         subject: "Welcome to Africamed Connect - Your account has been approved!",
         html: `
           <!DOCTYPE html>
@@ -85,31 +104,50 @@ export async function POST(req: NextRequest) {
       })
     })
 
+    console.log("[send-approval-email] Resend API response status:", emailRes.status)
+    
     if (!emailRes.ok) {
       let error
       try {
         const jsonError = await emailRes.json()
         error = JSON.stringify(jsonError)
+        console.error("[send-approval-email] Resend API JSON error:", jsonError)
       } catch {
         error = await emailRes.text()
+        console.error("[send-approval-email] Resend API text error:", error)
       }
-      console.error("Resend API error:", error)
+      console.error("[send-approval-email] Resend API failed with status:", emailRes.status)
       return NextResponse.json(
-        { error: `Resend API error: ${error}` },
+        { 
+          error: `Failed to send email via Resend API (${emailRes.status}): ${error}`,
+          details: {
+            status: emailRes.status,
+            resendError: error,
+            timestamp: new Date().toISOString()
+          }
+        },
         { status: emailRes.status }
       )
     }
 
     const result = await emailRes.json()
+    console.log("[send-approval-email] Email sent successfully!", { emailId: result.id })
 
     return NextResponse.json({
       success: true,
       emailId: result.id
     })
   } catch (error) {
-    console.error("Error sending email:", error)
+    console.error("[send-approval-email] Unexpected error:", error)
+    console.error("[send-approval-email] Error stack:", error instanceof Error ? error.stack : "No stack trace")
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unknown error" },
+      { 
+        error: error instanceof Error ? error.message : "Unknown error",
+        details: {
+          type: error instanceof Error ? error.constructor.name : typeof error,
+          timestamp: new Date().toISOString()
+        }
+      },
       { status: 500 }
     )
   }
