@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react"
 import AvatarUpload from "./AvatarUpload"
 import ProfileToast from "@/components/ProfileToast"
-import { LogOut, Pencil } from "lucide-react"
+import ConferenceCard from "@/components/ConferenceCard"
+import { LogOut, Pencil, CreditCard } from "lucide-react"
 import { updateProfile, logoutAction } from "./actions"
 
 type ProfileClientProps = {
@@ -21,6 +22,7 @@ export default function ProfileClient({
 }: ProfileClientProps) {
   const [toast, setToast] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
+  const [showCard, setShowCard] = useState(false)
   const [pending, startTransition] = useTransition()
 
   function handleSubmit(formData: FormData) {
@@ -45,6 +47,13 @@ export default function ProfileClient({
         <ProfileToast
           message={toast}
           onClose={() => setToast(null)}
+        />
+      )}
+
+      {showCard && (
+        <ConferenceCard
+          profile={profile}
+          onClose={() => setShowCard(false)}
         />
       )}
 
@@ -113,6 +122,15 @@ export default function ProfileClient({
           setToast("Profile photo updated")
         }}
       />
+
+      {/* Conference Badge Button */}
+      <button
+        onClick={() => setShowCard(true)}
+        className="w-full py-3 rounded-xl bg-gradient-to-r from-[#7c1d1d] to-[#d4af37] text-white font-semibold shadow-lg hover:shadow-xl transition flex items-center justify-center gap-2"
+      >
+        <CreditCard size={20} />
+        View Conference Badge
+      </button>
 
       {/* Bio Section */}
       {!editing && profile?.bio && (
