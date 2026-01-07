@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef } from "react"
+import { useRef, useState } from "react"
 import { Download, X } from "lucide-react"
 
 type ConferenceCardProps = {
@@ -15,66 +15,37 @@ type ConferenceCardProps = {
 
 export default function ConferenceCard({ profile, onClose }: ConferenceCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
+  const [isDownloading, setIsDownloading] = useState(false)
 
   async function handleDownload() {
-    if (!cardRef.current) return
+    if (!cardRef.current || isDownloading) return
+
+    setIsDownloading(true)
 
     try {
-      // Show loading state
-      const button = document.querySelector('[data-download-btn]') as HTMLButtonElement
-      if (button) {
-        button.disabled = true
-        button.textContent = 'Generating...'
-      }
-
       // Dynamically import html2canvas
       const html2canvas = (await import("html2canvas")).default
       
-      // Generate canvas with higher quality
+      // Generate canvas
       const canvas = await html2canvas(cardRef.current, {
-        scale: 3,
+        scale: 2,
         logging: false,
         useCORS: true,
         allowTaint: true
       } as any)
 
-      // Convert to blob and download
-      canvas.toBlob((blob: Blob | null) => {
-        if (!blob) {
-          throw new Error("Failed to create image")
-        }
-        
-        const url = URL.createObjectURL(blob)
-        const link = document.createElement("a")
-        link.download = `${profile.full_name?.replace(/\s+/g, "_") || "badge"}_africamed_2026.png`
-        link.href = url
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        
-        // Cleanup
-        setTimeout(() => URL.revokeObjectURL(url), 100)
-        
-        // Show success message
-        alert("Badge downloaded successfully!")
-      }, "image/png", 1.0)
-      
-      // Reset button
-      if (button) {
-        button.disabled = false
-        button.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg><span>Download Badge</span>'
-      }
+      // Create download link
+      const dataUrl = canvas.toDataURL("image/png")
+      const link = document.createElement("a")
+      link.download = `${profile.full_name?.replace(/\s+/g, "_") || "badge"}_ambf_2026.png`
+      link.href = dataUrl
+      link.click()
       
     } catch (error) {
-      console.error("Failed to download card:", error)
-      alert("Failed to download badge. Please try again or take a screenshot instead.")
-      
-      // Reset button on error
-      const button = document.querySelector('[data-download-btn]') as HTMLButtonElement
-      if (button) {
-        button.disabled = false
-        button.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg><span>Download Badge</span>'
-      }
+      console.error("Download error:", error)
+      alert("Failed to download badge. Please try taking a screenshot instead.")
+    } finally {
+      setIsDownloading(false)
     }
   }
 
@@ -186,11 +157,20 @@ export default function ConferenceCard({ profile, onClose }: ConferenceCardProps
         {/* Download button */}
         <button
           onClick={handleDownload}
-          data-download-btn
+          disabled={isDownloading}
           className="mt-4 w-full py-3 bg-white hover:bg-gray-50 text-gray-900 font-semibold rounded-xl shadow-lg flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Download size={20} />
-          Download Badge
+          {isDownloading ? (
+            <>
+              <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin"></div>
+              Generating...
+            </>
+          ) : (
+            <>
+              <Download size={20} />
+              Download Badge
+            </>
+          )}
         </button>
       </div>
     </div>
