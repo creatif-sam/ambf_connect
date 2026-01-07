@@ -1,11 +1,12 @@
 "use client"
 
-import { useState, useTransition } from "react"
-import AvatarUpload from "./AvatarUpload"
+import { useState, useTransition, useRef } from "react"
 import ProfileToast from "@/components/ProfileToast"
 import ConferenceCard from "@/components/ConferenceCard"
-import { LogOut, Pencil, CreditCard } from "lucide-react"
-import { updateProfile, logoutAction } from "./actions"
+import ProfileCompleteness from "@/components/ProfileCompleteness"
+import { LogOut, Pencil, CreditCard, Camera } from "lucide-react"
+import { updateProfile, logoutAction, updateAvatarUrl } from "./actions"
+import { createSupabaseBrowserClient } from "@/lib/supabase/client"
 
 type ProfileClientProps = {
   profile: any
@@ -24,6 +25,45 @@ export default function ProfileClient({
   const [editing, setEditing] = useState(false)
   const [showCard, setShowCard] = useState(false)
   const [pending, startTransition] = useTransition()
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  async function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    try {
+      setUploadingPhoto(true)
+
+      const supabase = createSupabaseBrowserClient()
+      const {
+        data: { user }
+      } = await supabase.auth.getUser()
+
+      if (!user) throw new Error("Not authenticated")
+
+      const fileExt = file.name.split(".").pop()
+      const filePath = `${user.id}/avatar.${fileExt}`
+
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file, { upsert: true })
+
+      if (uploadError) throw uploadError
+
+      const {
+        data: { publicUrl }
+      } = supabase.storage.from("avatars").getPublicUrl(filePath)
+
+      await updateAvatarUrl(publicUrl)
+      setToast("Profile photo updated")
+      window.location.reload()
+    } catch (err: any) {
+      setToast(err.message ?? "Upload failed")
+    } finally {
+      setUploadingPhoto(false)
+    }
+  }
 
   function handleSubmit(formData: FormData) {
     startTransition(async () => {
@@ -59,18 +99,43 @@ export default function ProfileClient({
 
       {/* Profile header */}
       <section className="flex flex-col items-center text-center space-y-4">
-        <div className="h-28 w-28 rounded-full bg-gray-200 overflow-hidden">
-          {profile?.avatar_url ? (
-            <img
-              src={profile.avatar_url}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <div className="h-full w-full flex items-center justify-center text-3xl font-semibold text-gray-500">
-              {profile?.full_name?.charAt(0) ?? "?"}
+        <div className="relative group">
+          <div className="h-28 w-28 rounded-full bg-gray-200 overflow-hidden">
+            {profile?.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt=""
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <div className="h-full w-full flex items-center justify-center text-3xl font-semibold text-gray-500">
+                {profile?.full_name?.charAt(0) ?? "?"}
+              </div>
+            )}
+          </div>
+          
+          {/* Camera overlay */}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingPhoto}
+            className="absolute inset-0 h-28 w-28 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+          >
+            <Camera className="w-8 h-8 text-white" />
+          </button>
+          
+          {uploadingPhoto && (
+            <div className="absolute inset-0 h-28 w-28 rounded-full bg-black/70 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
             </div>
           )}
+          
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoChange}
+            className="hidden"
+          />
         </div>
 
         <div>
@@ -116,12 +181,10 @@ export default function ProfileClient({
         </div>
       </section>
 
-      {/* Avatar upload */}
-      <AvatarUpload
-        onSuccess={() => {
-          setToast("Profile photo updated")
-        }}
-      />
+      {/* Profile Completeness */}
+      <ProfileCompleteness profile={profile} />
+
+      {/* Avatar upload - old component removed, now using overlay */}
 
       {/* Conference Badge Button */}
       <button

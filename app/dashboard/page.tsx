@@ -11,6 +11,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getPendingUsers } from "@/lib/queries/pendingMembers"
 import EventsList from "@/components/EventsList"
 import PendingUsersList from "@/components/PendingMembersList"
+import ProfileCompleteness from "@/components/ProfileCompleteness"
 
 // Force dynamic rendering - no caching
 export const dynamic = "force-dynamic"
@@ -26,6 +27,13 @@ export default async function DashboardPage() {
   if (!user) {
     redirect("/auth/login")
   }
+
+  // Fetch user profile for completeness
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("full_name, job_title, company, avatar_url, bio")
+    .eq("id", user.id)
+    .single()
 
   // Fetch pending users (only for organizers)
   const pendingUsers = await getPendingUsers()
@@ -57,6 +65,11 @@ export default async function DashboardPage() {
           Create event
         </Link>
       </header>
+
+      {/* ================= PROFILE COMPLETENESS ================= */}
+      {profile && (
+        <ProfileCompleteness profile={profile} />
+      )}
 
       {/* ================= PENDING APPROVALS ================= */}
       {pendingUsers.length > 0 && (
