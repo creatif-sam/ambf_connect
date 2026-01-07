@@ -24,10 +24,10 @@ export default function ConferenceCard({ profile, onClose }: ConferenceCardProps
       const html2canvas = (await import("html2canvas")).default
       
       const canvas = await html2canvas(cardRef.current, {
-        background: "#ffffff",
-        scale: 2, // Higher quality
+        backgroundColor: "#ffffff",
+        scale: 2,
         logging: false
-      })
+      } as any)
 
       // Convert to blob and download
       canvas.toBlob((blob: Blob | null) => {
