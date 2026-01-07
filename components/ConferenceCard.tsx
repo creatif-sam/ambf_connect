@@ -32,7 +32,7 @@ export default function ConferenceCard({ profile, onClose }: ConferenceCardProps
       
       // Generate canvas with higher quality
       const canvas = await html2canvas(cardRef.current, {
-        backgroundColor: "#ffffff",
+        background: "#ffffff",
         scale: 3, // Higher resolution
         logging: false,
         useCORS: true,
@@ -81,8 +81,8 @@ export default function ConferenceCard({ profile, onClose }: ConferenceCardProps
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="relative max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
+      <div className="relative max-w-sm w-full my-8" onClick={(e) => e.stopPropagation()}>
         {/* Close button */}
         <button
           onClick={onClose}
