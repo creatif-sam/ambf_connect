@@ -63,12 +63,12 @@ export default function NetworkingClient({
 
   async function handleAccept(id: string) {
     await onAccept(id)
-    showToast("success", "Connection accepted")
+    showToast("success", "Connection established")
   }
 
   async function handleReject(id: string) {
     await onReject(id)
-    showToast("error", "Request rejected")
+    showToast("error", "Request declined")
   }
 
   function renderCards(
@@ -180,7 +180,7 @@ export default function NetworkingClient({
                       "
                     >
                       <Check size={14} />
-                      Accept
+                      Connect
                     </button>
 
                     <button
@@ -193,7 +193,7 @@ export default function NetworkingClient({
                       "
                     >
                       <X size={14} />
-                      Reject
+                      Decline
                     </button>
                   </>
                 )}

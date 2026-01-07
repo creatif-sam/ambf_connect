@@ -1,15 +1,14 @@
 "use client"
 
 import Image from "next/image"
-import { HelpCircle, Download, Bell } from "lucide-react"
-import { usePWAInstall } from "@/lib/pwa/usePWAInstall"
+import { HelpCircle, Bell } from "lucide-react"
 import { useEffect, useState, useRef } from "react"
 import { getRecentNotifications, getUnreadCount, markAsRead, markAllAsRead, type Notification } from "@/lib/queries/notifications"
 import { createSupabaseBrowserClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import HelpModal from "./HelpModal"
 
 export default function TopNav() {
-  const { install } = usePWAInstall()
   const router = useRouter()
   const supabase = createSupabaseBrowserClient()
   
@@ -17,6 +16,7 @@ export default function TopNav() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [isOpen, setIsOpen] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isHelpOpen, setIsHelpOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -202,22 +202,18 @@ export default function TopNav() {
           )}
 
           <button
+            onClick={() => setIsHelpOpen(true)}
             aria-label="Help"
             className="hover:text-[#d4af37] transition"
           >
             <HelpCircle size={20} />
           </button>
-
-          <button
-            onClick={install}
-            aria-label="Install App"
-            className="hover:text-[#d4af37] transition"
-          >
-            <Download size={20} />
-          </button>
         </div>
 
       </div>
+
+      {/* Help Modal */}
+      <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
     </header>
   )
 }
