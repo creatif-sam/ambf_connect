@@ -16,6 +16,10 @@ export async function signUp(
     full_name?: string
     job_title?: string
     company?: string
+    id_passport_cin?: string
+    enterprise_website?: string
+    sector_of_activity?: string
+    country?: string
   }
 ) {
   const supabase = createSupabaseBrowserClient()
