@@ -33,12 +33,24 @@ export default async function ProfilePage() {
     )
     .eq("status", "accepted")
 
+  // Get user's highest role from event_members
+  const { data: membershipData } = await supabase
+    .from("event_members")
+    .select("role")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single()
+
+  const userRole = membershipData?.role || "attendee"
+
   return (
     <ProfileClient
       profile={profile}
       email={user.email ?? ""}
       totalConnections={totalConnections ?? 0}
       pendingConnections={pendingConnections ?? 0}
+      userRole={userRole}
     />
   )
 }

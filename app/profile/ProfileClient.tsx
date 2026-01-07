@@ -13,13 +13,15 @@ type ProfileClientProps = {
   email: string
   totalConnections: number
   pendingConnections: number
+  userRole?: string
 }
 
 export default function ProfileClient({
   profile,
   email,
   totalConnections,
-  pendingConnections
+  pendingConnections,
+  userRole
 }: ProfileClientProps) {
   const [toast, setToast] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
@@ -93,6 +95,7 @@ export default function ProfileClient({
       {showCard && (
         <ConferenceCard
           profile={profile}
+          role={userRole}
           onClose={() => setShowCard(false)}
         />
       )}

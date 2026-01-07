@@ -10,10 +10,11 @@ type ConferenceCardProps = {
     company: string | null
     avatar_url: string | null
   }
+  role?: string | null
   onClose: () => void
 }
 
-export default function ConferenceCard({ profile, onClose }: ConferenceCardProps) {
+export default function ConferenceCard({ profile, role, onClose }: ConferenceCardProps) {
   const cardRef = useRef<HTMLDivElement>(null)
   const [isDownloading, setIsDownloading] = useState(false)
 
@@ -130,8 +131,10 @@ export default function ConferenceCard({ profile, onClose }: ConferenceCardProps
                   <p className="text-gray-900 font-semibold mt-0.5">AMBF 2026</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg py-2 px-3">
-                  <p className="text-gray-500 font-medium">TYPE</p>
-                  <p className="text-gray-900 font-semibold mt-0.5">Attendee</p>
+                  <p className="text-gray-500 font-medium">ROLE</p>
+                  <p className="text-gray-900 font-semibold mt-0.5 capitalize">
+                    {role || "Attendee"}
+                  </p>
                 </div>
               </div>
             </div>
