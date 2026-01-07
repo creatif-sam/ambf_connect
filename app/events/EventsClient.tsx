@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { UserPlus, LogIn, X } from "lucide-react"
+import EventCountdown from "@/components/EventCountdown"
 
 type Event = {
   id: string
@@ -98,7 +99,11 @@ export default function EventsClient({ events, isAuthenticated }: Props) {
                   {event.title}
                 </h2>
 
-                <p className="mt-2 text-sm text-gray-400">
+                <div className="mt-3">
+                  <EventCountdown startDate={event.start_date} endDate={event.end_date} />
+                </div>
+
+                <p className="mt-2 text-xs text-gray-500">
                   {event.start_date} to {event.end_date}
                 </p>
 
