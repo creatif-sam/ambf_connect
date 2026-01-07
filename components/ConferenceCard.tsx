@@ -20,28 +20,63 @@ export default function ConferenceCard({ profile, onClose }: ConferenceCardProps
     if (!cardRef.current) return
 
     try {
-      // Dynamically import html2canvas only when needed
+      // Show loading state
+      const button = document.querySelector('[data-download-btn]') as HTMLButtonElement
+      if (button) {
+        button.disabled = true
+        button.textContent = 'Generating...'
+      }
+
+      // Dynamically import html2canvas
       const html2canvas = (await import("html2canvas")).default
       
+      // Generate canvas with higher quality
       const canvas = await html2canvas(cardRef.current, {
         backgroundColor: "#ffffff",
-        scale: 2,
-        logging: false
-      } as any)
+        scale: 3, // Higher resolution
+        logging: false,
+        useCORS: true,
+        allowTaint: true,
+        imageTimeout: 0
+      })
 
       // Convert to blob and download
       canvas.toBlob((blob: Blob | null) => {
-        if (!blob) return
+        if (!blob) {
+          throw new Error("Failed to create image")
+        }
+        
         const url = URL.createObjectURL(blob)
         const link = document.createElement("a")
         link.download = `${profile.full_name?.replace(/\s+/g, "_") || "badge"}_africamed_2026.png`
         link.href = url
+        document.body.appendChild(link)
         link.click()
-        URL.revokeObjectURL(url)
-      })
+        document.body.removeChild(link)
+        
+        // Cleanup
+        setTimeout(() => URL.revokeObjectURL(url), 100)
+        
+        // Show success message
+        alert("Badge downloaded successfully!")
+      }, "image/png", 1.0)
+      
+      // Reset button
+      if (button) {
+        button.disabled = false
+        button.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg><span>Download Badge</span>'
+      }
+      
     } catch (error) {
       console.error("Failed to download card:", error)
-      alert("Failed to download card. Please try again.")
+      alert("Failed to download badge. Please try again or take a screenshot instead.")
+      
+      // Reset button on error
+      const button = document.querySelector('[data-download-btn]') as HTMLButtonElement
+      if (button) {
+        button.disabled = false
+        button.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg><span>Download Badge</span>'
+      }
     }
   }
 
@@ -153,7 +188,8 @@ export default function ConferenceCard({ profile, onClose }: ConferenceCardProps
         {/* Download button */}
         <button
           onClick={handleDownload}
-          className="mt-4 w-full py-3 bg-white hover:bg-gray-50 text-gray-900 font-semibold rounded-xl shadow-lg flex items-center justify-center gap-2 transition"
+          data-download-btn
+          className="mt-4 w-full py-3 bg-white hover:bg-gray-50 text-gray-900 font-semibold rounded-xl shadow-lg flex items-center justify-center gap-2 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Download size={20} />
           Download Badge
