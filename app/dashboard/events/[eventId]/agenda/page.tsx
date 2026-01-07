@@ -42,6 +42,25 @@ export default async function AdminAgendaPage({ params }: PageProps) {
 
   return (
     <main className="p-6 space-y-10">
+      {/* ================= BREADCRUMBS ================= */}
+      <nav className="text-sm text-zinc-500">
+        <ol className="flex items-center gap-2">
+          <li>
+            <Link href="/dashboard" className="hover:text-black">
+              Dashboard
+            </Link>
+          </li>
+          <li>›</li>
+          <li>
+            <Link href="/dashboard/events" className="hover:text-black">
+              Events
+            </Link>
+          </li>
+          <li>›</li>
+          <li className="font-medium text-black">Agenda</li>
+        </ol>
+      </nav>
+
       {/* ================= HEADER ================= */}
       <header className="flex items-center justify-between">
         <div>

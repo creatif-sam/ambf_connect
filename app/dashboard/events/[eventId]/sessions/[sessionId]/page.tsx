@@ -118,6 +118,33 @@ export default function EditSessionPage() {
 
   return (
     <main className="max-w-3xl mx-auto p-6 space-y-8">
+      {/* ================= BREADCRUMBS ================= */}
+      <nav className="text-sm text-zinc-500">
+        <ol className="flex items-center gap-2">
+          <li>
+            <Link href="/dashboard" className="hover:text-black">
+              Dashboard
+            </Link>
+          </li>
+          <li>›</li>
+          <li>
+            <Link href="/dashboard/events" className="hover:text-black">
+              Events
+            </Link>
+          </li>
+          <li>›</li>
+          <li>
+            <Link
+              href={`/dashboard/events/${eventId}/sessions`}
+              className="hover:text-black"
+            >
+              Sessions
+            </Link>
+          </li>
+          <li>›</li>
+          <li className="font-medium text-black">Edit Session</li>
+        </ol>
+      </nav>
       {/* ================= HEADER ================= */}
       <header>
         <h1 className="text-2xl font-semibold">

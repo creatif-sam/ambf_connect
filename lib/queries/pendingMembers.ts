@@ -25,17 +25,17 @@ export async function getPendingUsers() {
   }
 
   try {
-    // Check if current user is an organizer
+    // Check if current user is an organizer or admin
     const { data: membership } = await supabase
       .from("event_members")
       .select("role")
       .eq("user_id", user.id)
-      .eq("role", "organizer")
+      .in("role", ["organizer", "admin"])
       .limit(1)
       .single()
 
     if (!membership) {
-      // Not an organizer, return empty array
+      // Not an organizer/admin, return empty array
       return []
     }
 
@@ -76,12 +76,12 @@ export async function getTotalPendingCount() {
     return 0
   }
 
-  // Check if current user is an organizer
+  // Check if current user is an organizer or admin
   const { data: membership } = await supabase
     .from("event_members")
     .select("role")
     .eq("user_id", user.id)
-    .eq("role", "organizer")
+    .in("role", ["organizer", "admin"])
     .limit(1)
     .single()
 

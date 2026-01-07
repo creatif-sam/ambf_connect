@@ -82,6 +82,19 @@ export default function AttendeesPage() {
 
   return (
     <main className="max-w-6xl mx-auto p-6 space-y-6">
+      {/* ================= BREADCRUMBS ================= */}
+      <nav className="text-sm text-zinc-500">
+        <ol className="flex items-center gap-2">
+          <li>
+            <Link href="/dashboard" className="hover:text-black">
+              Dashboard
+            </Link>
+          </li>
+          <li>›</li>
+          <li className="font-medium text-black">All Participants</li>
+        </ol>
+      </nav>
+
       <header>
         <h1 className="text-2xl font-semibold">
           All Participants

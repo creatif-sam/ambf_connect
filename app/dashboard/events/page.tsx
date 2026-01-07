@@ -27,6 +27,7 @@ export default function CreateEventPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    e.preventDefault()
     setLoading(true)
     setError(null)
 

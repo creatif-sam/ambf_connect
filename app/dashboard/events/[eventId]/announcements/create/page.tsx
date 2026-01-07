@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter, useParams } from "next/navigation"
+import Link from "next/link"
 import { createSupabaseBrowserClient } from "@/lib/supabase/client"
 
 export default function CreateAnnouncementPage() {
@@ -48,7 +49,35 @@ export default function CreateAnnouncementPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6 p-6">
+      {/* ================= BREADCRUMBS ================= */}
+      <nav className="text-sm text-zinc-500">
+        <ol className="flex items-center gap-2">
+          <li>
+            <Link href="/dashboard" className="hover:text-black">
+              Dashboard
+            </Link>
+          </li>
+          <li>›</li>
+          <li>
+            <Link href="/dashboard/events" className="hover:text-black">
+              Events
+            </Link>
+          </li>
+          <li>›</li>
+          <li>
+            <Link
+              href={`/dashboard/events/${eventId}/announcements`}
+              className="hover:text-black"
+            >
+              Announcements
+            </Link>
+          </li>
+          <li>›</li>
+          <li className="font-medium text-black">New</li>
+        </ol>
+      </nav>
+
       <div>
         <h1 className="text-2xl font-semibold">New announcement</h1>
         <p className="text-sm text-zinc-500">

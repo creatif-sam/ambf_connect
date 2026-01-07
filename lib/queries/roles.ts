@@ -1,6 +1,8 @@
 import { createSupabaseBrowserClient } from "@/lib/supabase/client"
 
-export async function getMyEventRole(eventId: string) {
+export type EventRole = 'attendee' | 'speaker' | 'media' | 'organizer' | 'admin'
+
+export async function getMyEventRole(eventId: string): Promise<EventRole | null> {
   const supabase = createSupabaseBrowserClient()
 
   const {
@@ -22,5 +24,30 @@ export async function getMyEventRole(eventId: string) {
     return null
   }
 
-  return data.role
+  return data.role as EventRole
 }
+
+export async function hasOrganizerAccess(userId?: string): Promise<boolean> {
+  const supabase = createSupabaseBrowserClient()
+
+  let userIdToCheck = userId
+
+  if (!userIdToCheck) {
+    const {
+      data: { user }
+    } = await supabase.auth.getUser()
+    
+    if (!user) return false
+    userIdToCheck = user.id
+  }
+
+  const { data } = await supabase
+    .from("event_members")
+    .select("role")
+    .eq("user_id", userIdToCheck)
+    .in("role", ["organizer", "admin"])
+    .limit(1)
+
+  return !!data?.length
+}
+

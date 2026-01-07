@@ -188,8 +188,14 @@ export default async function EventOverviewPage({
           />
 
           <OverviewCard
+            title="Members & Roles"
+            description="Manage member roles and permissions"
+            href={`/dashboard/events/${event.id}/members`}
+          />
+
+          <OverviewCard
             title="Attendees"
-            description="View and manage participants"
+            description="View all participants"
             href={`/dashboard/events/${event.id}/attendees`}
           />
         </section>

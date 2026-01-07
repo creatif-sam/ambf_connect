@@ -11,7 +11,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { getPendingUsers } from "@/lib/queries/pendingMembers"
 import EventsList from "@/components/EventsList"
 import PendingUsersList from "@/components/PendingMembersList"
-import ProfileCompleteness from "@/components/ProfileCompleteness"
+
 
 // Force dynamic rendering - no caching
 export const dynamic = "force-dynamic"
@@ -40,6 +40,13 @@ export default async function DashboardPage() {
 
   return (
     <main className="max-w-6xl mx-auto p-6 space-y-10">
+      {/* ================= BREADCRUMBS ================= */}
+      <nav className="text-sm text-zinc-500">
+        <ol className="flex items-center gap-2">
+          <li className="font-medium text-black">Dashboard</li>
+        </ol>
+      </nav>
+
       {/* ================= HEADER ================= */}
       <header className="flex justify-between items-center">
         <div>
@@ -65,11 +72,6 @@ export default async function DashboardPage() {
           Create event
         </Link>
       </header>
-
-      {/* ================= PROFILE COMPLETENESS ================= */}
-      {profile && (
-        <ProfileCompleteness profile={profile} />
-      )}
 
       {/* ================= PENDING APPROVALS ================= */}
       {pendingUsers.length > 0 && (

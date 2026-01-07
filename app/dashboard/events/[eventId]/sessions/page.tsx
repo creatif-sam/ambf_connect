@@ -106,6 +106,25 @@ export default function SessionsEditorPage() {
 
   return (
     <main className="max-w-6xl mx-auto p-6 space-y-8">
+      {/* ================= BREADCRUMBS ================= */}
+      <nav className="text-sm text-zinc-500">
+        <ol className="flex items-center gap-2">
+          <li>
+            <Link href="/dashboard" className="hover:text-black">
+              Dashboard
+            </Link>
+          </li>
+          <li>›</li>
+          <li>
+            <Link href="/dashboard/events" className="hover:text-black">
+              Events
+            </Link>
+          </li>
+          <li>›</li>
+          <li className="font-medium text-black">Sessions</li>
+        </ol>
+      </nav>
+
       {/* Header */}
       <header className="flex justify-between items-center">
         <div>

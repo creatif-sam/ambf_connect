@@ -34,16 +34,16 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Verify the current user is an organizer
+    // Verify the current user is an organizer or admin
     const { data: membership, error: membershipError } = await supabase
       .from("event_members")
       .select("role")
       .eq("user_id", user.id)
-      .eq("role", "organizer")
+      .in("role", ["organizer", "admin"])
       .limit(1)
       .single()
 
-    console.log("Organizer check for user:", user.id)
+    console.log("Organizer/Admin check for user:", user.id)
     console.log("Membership data:", membership)
     console.log("Membership error:", membershipError)
 
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json(
         { 
-          error: "Only organizers can approve users. Please ensure you are added as an organizer in at least one event.",
+          error: "Only organizers or admins can approve users. Please ensure you are added as an organizer or admin in at least one event.",
           debug: {
             userId: user.id,
             hasMembership: !!anyMembership,

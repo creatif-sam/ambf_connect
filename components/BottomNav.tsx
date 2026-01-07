@@ -25,7 +25,7 @@ export default function BottomNav() {
   const supabase = createSupabaseBrowserClient()
 
   const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [isOrganizer, setIsOrganizer] = useState(false)
+  const [hasOrganizerAccess, setHasOrganizerAccess] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [ready, setReady] = useState(false)
 
@@ -49,14 +49,15 @@ export default function BottomNav() {
       setIsLoggedIn(true)
       fetchUnread()
 
+      // Check if user has organizer or admin role (dashboard access)
       const { data: memberships } = await supabase
         .from("event_members")
         .select("role")
         .eq("user_id", user.id)
-        .eq("role", "organizer")
+        .in("role", ["organizer", "admin"])
         .limit(1)
 
-      setIsOrganizer(!!memberships?.length)
+      setHasOrganizerAccess(!!memberships?.length)
 
       const channel = supabase
         .channel("bottom-nav-unread")
@@ -95,7 +96,7 @@ export default function BottomNav() {
     { label: "Announcements", href: "/announcements", icon: Megaphone }
   ]
 
-  if (isOrganizer) {
+  if (hasOrganizerAccess) {
     navItems.push({
       label: "Dashboard",
       href: "/dashboard",
