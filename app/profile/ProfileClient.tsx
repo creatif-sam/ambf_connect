@@ -148,6 +148,16 @@ export default function ProfileClient({
           <p className="text-sm text-gray-500">
             {profile?.company}
           </p>
+          {profile?.sector_of_activity && (
+            <p className="text-sm text-gray-600 mt-1">
+              {profile.sector_of_activity}
+            </p>
+          )}
+          {profile?.country && (
+            <p className="text-sm text-gray-500 flex items-center justify-center gap-1 mt-1">
+              <span>📍</span> {profile.country}
+            </p>
+          )}
         </div>
       </section>
 
@@ -254,6 +264,30 @@ export default function ProfileClient({
               <input
                 name="company"
                 defaultValue={profile?.company ?? ""}
+                className="mt-1 w-full border rounded-md px-3 py-2"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">
+                Sector of Activity
+              </label>
+              <input
+                name="sector_of_activity"
+                defaultValue={profile?.sector_of_activity ?? ""}
+                placeholder="e.g., Healthcare, Technology, Finance"
+                className="mt-1 w-full border rounded-md px-3 py-2"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium">
+                Country
+              </label>
+              <input
+                name="country"
+                defaultValue={profile?.country ?? ""}
+                placeholder="Your country"
                 className="mt-1 w-full border rounded-md px-3 py-2"
               />
             </div>

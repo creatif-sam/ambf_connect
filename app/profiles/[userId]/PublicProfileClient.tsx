@@ -13,6 +13,8 @@ type PublicProfileClientProps = {
     company: string | null
     avatar_url: string | null
     bio: string | null
+    sector_of_activity: string | null
+    country: string | null
     created_at: string
   }
   totalConnections: number | null
@@ -69,6 +71,16 @@ export default function PublicProfileClient({ profile, totalConnections }: Publi
             <p className="text-sm text-gray-500">
               {profile.company}
             </p>
+            {profile.sector_of_activity && (
+              <p className="text-sm text-gray-600 mt-1">
+                {profile.sector_of_activity}
+              </p>
+            )}
+            {profile.country && (
+              <p className="text-sm text-gray-500 mt-1">
+                📍 {profile.country}
+              </p>
+            )}
           </div>
         </section>
 

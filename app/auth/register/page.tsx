@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { signUp } from "@/lib/supabase/auth"
-import { UserPlus, Mail, Lock, User, Briefcase, Building2, Eye, EyeOff } from "lucide-react"
+import { UserPlus, Mail, Lock, User, Briefcase, Building2, Eye, EyeOff, CreditCard, Globe, Factory, MapPin } from "lucide-react"
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -16,6 +16,10 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState("")
   const [jobTitle, setJobTitle] = useState("")
   const [company, setCompany] = useState("")
+  const [idPassportCin, setIdPassportCin] = useState("")
+  const [enterpriseWebsite, setEnterpriseWebsite] = useState("")
+  const [sectorOfActivity, setSectorOfActivity] = useState("")
+  const [country, setCountry] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -27,7 +31,11 @@ export default function RegisterPage() {
     const { error } = await signUp(email, password, {
       full_name: fullName,
       job_title: jobTitle,
-      company: company
+      company: company,
+      id_passport_cin: idPassportCin,
+      enterprise_website: enterpriseWebsite,
+      sector_of_activity: sectorOfActivity,
+      country: country
     })
 
     if (error) {
@@ -91,8 +99,8 @@ export default function RegisterPage() {
       </div>
 
       {/* Registration panel */}
-      <div className="flex flex-col justify-center px-6 md:px-16 bg-white">
-        <div className="max-w-md w-full mx-auto space-y-6">
+      <div className="flex flex-col px-6 md:px-16 bg-white overflow-y-auto">
+        <div className="max-w-md w-full mx-auto space-y-6 py-8">
           <header className="space-y-2">
             <h2 className="text-3xl font-semibold">
               Create your account
@@ -103,7 +111,7 @@ export default function RegisterPage() {
           </header>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Full Name */}
+            {/* Full Name - Full Width */}
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
@@ -116,7 +124,7 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* Email */}
+            {/* Email - Full Width */}
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
@@ -129,7 +137,7 @@ export default function RegisterPage() {
               />
             </div>
 
-            {/* Password */}
+            {/* Password - Full Width */}
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
@@ -150,30 +158,85 @@ export default function RegisterPage() {
               </button>
             </div>
 
-            {/* Job Title */}
-            <div className="relative">
-              <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Job Title"
-                required
-                className="w-full border rounded-lg pl-11 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-black transition-all"
-                value={jobTitle}
-                onChange={e => setJobTitle(e.target.value)}
-              />
+            {/* Job Title & Company - Side by Side */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="relative">
+                <Briefcase className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Job Title"
+                  required
+                  className="w-full border rounded-lg pl-11 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                  value={jobTitle}
+                  onChange={e => setJobTitle(e.target.value)}
+                />
+              </div>
+
+              <div className="relative">
+                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Company / Organization"
+                  required
+                  className="w-full border rounded-lg pl-11 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                  value={company}
+                  onChange={e => setCompany(e.target.value)}
+                />
+              </div>
             </div>
 
-            {/* Company */}
-            <div className="relative">
-              <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Company / Organization"
-                required
-                className="w-full border rounded-lg pl-11 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-black transition-all"
-                value={company}
-                onChange={e => setCompany(e.target.value)}
-              />
+            {/* Sector & Country - Side by Side */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="relative">
+                <Factory className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Sector (e.g., Healthcare)"
+                  required
+                  className="w-full border rounded-lg pl-11 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                  value={sectorOfActivity}
+                  onChange={e => setSectorOfActivity(e.target.value)}
+                />
+              </div>
+
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Country"
+                  required
+                  className="w-full border rounded-lg pl-11 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                  value={country}
+                  onChange={e => setCountry(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* ID & Website - Side by Side */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="relative">
+                <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="ID / Passport / CIN"
+                  required
+                  className="w-full border rounded-lg pl-11 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                  value={idPassportCin}
+                  onChange={e => setIdPassportCin(e.target.value)}
+                />
+              </div>
+
+              <div className="relative">
+                <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="url"
+                  placeholder="Enterprise Website / LinkedIn"
+                  required
+                  className="w-full border rounded-lg pl-11 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                  value={enterpriseWebsite}
+                  onChange={e => setEnterpriseWebsite(e.target.value)}
+                />
+              </div>
             </div>
 
             {error && (

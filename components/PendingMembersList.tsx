@@ -108,8 +108,28 @@ export default function PendingUsersList({ initialUsers }: Props) {
                 <p className="text-xs text-zinc-400 truncate">
                   {[user.job_title, user.company].filter(Boolean).join(" at ")}
                 </p>
+              )}              {user.sector_of_activity && (
+                <p className="text-xs text-zinc-500 truncate">
+                  Sector: {user.sector_of_activity}
+                </p>
               )}
-              <p className="text-xs text-zinc-400 mt-0.5">
+              {user.country && (
+                <p className="text-xs text-zinc-500">
+                  📍 {user.country}
+                </p>
+              )}
+              {user.id_passport_cin && (
+                <p className="text-xs text-zinc-400 font-mono truncate">
+                  ID: {user.id_passport_cin}
+                </p>
+              )}
+              {user.enterprise_website && (
+                <p className="text-xs text-blue-600 truncate">
+                  <a href={user.enterprise_website.startsWith('http') ? user.enterprise_website : `https://${user.enterprise_website}`} target="_blank" rel="noopener noreferrer" className="hover:underline">
+                    {user.enterprise_website}
+                  </a>
+                </p>
+              )}              <p className="text-xs text-zinc-400 mt-0.5">
                 Registered {formatDate(user.created_at)}
               </p>
             </div>

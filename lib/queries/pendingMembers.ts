@@ -7,6 +7,10 @@ export type PendingUser = {
   avatar_url: string | null
   job_title: string | null
   company: string | null
+  id_passport_cin: string | null
+  enterprise_website: string | null
+  sector_of_activity: string | null
+  country: string | null
   created_at: string
 }
 
@@ -42,7 +46,7 @@ export async function getPendingUsers() {
     // Get pending users
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, full_name, email, avatar_url, job_title, company, created_at, status")
+      .select("id, full_name, email, avatar_url, job_title, company, id_passport_cin, enterprise_website, sector_of_activity, country, created_at, status")
       .eq("status", "pending")
       .order("created_at", { ascending: false })
 

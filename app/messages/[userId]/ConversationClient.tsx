@@ -298,8 +298,8 @@ export default function ConversationClient({
               <div
                 className={`max-w-[75%] md:max-w-[65%] px-3 py-2 rounded-lg text-sm shadow-sm ${
                   isMe
-                    ? "bg-[#dcf8c6] rounded-br-none"
-                    : "bg-white rounded-bl-none"
+                    ? "bg-[#dcf8c6] text-gray-900 rounded-br-none"
+                    : "bg-white text-gray-900 rounded-bl-none"
                 }`}
               >
                 <p className="break-words">{m.content}</p>
@@ -318,7 +318,7 @@ export default function ConversationClient({
 
         {isTyping && (
           <div className="flex justify-start">
-            <div className="bg-white px-4 py-2 rounded-lg rounded-bl-none text-sm text-gray-500 shadow-sm">
+            <div className="bg-white text-gray-900 px-4 py-2 rounded-lg rounded-bl-none text-sm shadow-sm">
               <div className="flex gap-1">
                 <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }}></span>
                 <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }}></span>
@@ -354,7 +354,7 @@ export default function ConversationClient({
           ref={inputRef}
           placeholder="Type a message"
           onChange={notifyTyping}
-          className="flex-1 rounded-full px-4 py-2.5 text-sm bg-white border-0 outline-none focus:ring-2 focus:ring-yellow-400 transition"
+          className="flex-1 rounded-full px-4 py-2.5 text-sm bg-white text-gray-900 placeholder:text-gray-500 border-0 outline-none focus:ring-2 focus:ring-yellow-400 transition"
         />
 
         <button
@@ -365,7 +365,7 @@ export default function ConversationClient({
         </button>
 
         {showEmoji && (
-          <div className="absolute bottom-16 left-4 bg-white rounded-lg shadow-lg p-3 grid grid-cols-5 gap-2 border border-gray-200">
+          <div className="absolute bottom-16 left-4 bg-white text-gray-900 rounded-lg shadow-lg p-3 grid grid-cols-5 gap-2 border border-gray-200">
             {EMOJIS.map(e => (
               <button
                 key={e}

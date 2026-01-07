@@ -25,6 +25,8 @@ export async function updateProfile(formData: FormData) {
       full_name: formData.get("full_name"),
       job_title: formData.get("job_title"),
       company: formData.get("company"),
+      sector_of_activity: formData.get("sector_of_activity"),
+      country: formData.get("country"),
       bio: formData.get("bio")
     })
     .eq("id", user.id)
