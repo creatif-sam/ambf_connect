@@ -147,7 +147,7 @@ export default function ConferenceCard({ profile, role, onClose }: ConferenceCar
             </div>
 
             <div className="mt-6 flex flex-col items-center">
-              <img src="/images/partner-all.png" alt="Yo" />
+              <img src="/images/partner-all.png" alt="Partners" />
             </div>
 
             {/* QR Code placeholder (optional for future) */}
