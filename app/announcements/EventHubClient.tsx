@@ -131,7 +131,7 @@ function AgendaView({ sessions }: { sessions: Session[] }) {
 function AgendaDay({ title, sessions }: { title: string; sessions: Session[] }) {
   return (
     <section className="space-y-3">
-      <h2 className="text-lg font-semibold text-white border-b border-yellow-500/20 pb-2">
+      <h2 className="text-lg font-semibold text-gray-900 border-b border-yellow-500/20 pb-2">
         {title}
       </h2>
 
